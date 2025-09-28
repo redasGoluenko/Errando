@@ -6,4 +6,7 @@ public class Task
     public DateTime ScheduledTime { get; set; }
 
     public List<TaskItem> TaskItems { get; set; } = new();
+
+    public int ClientId { get; set; } 
+    public User Client { get; set; } = null!; 
 }
