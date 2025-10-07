@@ -91,8 +91,6 @@ public class StatusLogsController : ControllerBase
         statusLog.RunnerId = statusLogDto.RunnerId;
         statusLog.Comment = statusLogDto.Comment;
 
-        _context.Entry(statusLog).State = EntityState.Modified;
-        
         try
         {
             await _context.SaveChangesAsync();
