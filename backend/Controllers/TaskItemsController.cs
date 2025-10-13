@@ -36,7 +36,6 @@ public class TaskItemsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<TaskItem>> CreateTaskItem(CreateTaskItemDto taskItemDto)
     {
-        // Verify that the TaskId exists
         var task = await _context.Tasks.FindAsync(taskItemDto.TaskId);
         if (task == null) return BadRequest("Task not found");
 
@@ -50,7 +49,6 @@ public class TaskItemsController : ControllerBase
         _context.TaskItems.Add(taskItem);
         await _context.SaveChangesAsync();
         
-        // Return the task item with Task included
         var createdTaskItem = await _context.TaskItems
             .Include(ti => ti.Task)
             .FirstOrDefaultAsync(ti => ti.Id == taskItem.Id);
@@ -63,14 +61,12 @@ public class TaskItemsController : ControllerBase
     {
         if (id != taskItemDto.Id) return BadRequest();
         
-        // Verify that the TaskId exists
         var task = await _context.Tasks.FindAsync(taskItemDto.TaskId);
         if (task == null) return BadRequest("Task not found");
 
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
 
-        // Update properties
         taskItem.Description = taskItemDto.Description;
         taskItem.IsCompleted = taskItemDto.IsCompleted;
         taskItem.TaskId = taskItemDto.TaskId;
@@ -134,6 +130,42 @@ public class TaskItemsController : ControllerBase
         await _context.SaveChangesAsync();
         
         return NoContent();
+    }
+
+    [HttpGet("{taskItemId}/statuslogs")]
+    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByIds(
+        int taskItemId, 
+        [FromQuery] int[] statusLogIds)
+    {
+        var taskItem = await _context.TaskItems.FindAsync(taskItemId);
+        if (taskItem == null) return NotFound("TaskItem not found");
+
+        var statusLogs = await _context.StatusLogs
+            .Where(sl => sl.TaskItemId == taskItemId && statusLogIds.Contains(sl.Id))
+            .Include(sl => sl.Runner)
+            .Include(sl => sl.TaskItem)
+            .OrderByDescending(sl => sl.CreatedAt)
+            .ToListAsync();
+
+        return statusLogs;
+    }
+
+    [HttpPost("{taskItemId}/statuslogs/filter")]
+    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByIdsPost(
+        int taskItemId, 
+        [FromBody] StatusLogFilterDto filterDto)
+    {
+        var taskItem = await _context.TaskItems.FindAsync(taskItemId);
+        if (taskItem == null) return NotFound("TaskItem not found");
+
+        var statusLogs = await _context.StatusLogs
+            .Where(sl => sl.TaskItemId == taskItemId && filterDto.StatusLogIds.Contains(sl.Id))
+            .Include(sl => sl.Runner)
+            .Include(sl => sl.TaskItem)
+            .OrderByDescending(sl => sl.CreatedAt)
+            .ToListAsync();
+
+        return statusLogs;
     }
 
     private bool TaskItemExists(int id)

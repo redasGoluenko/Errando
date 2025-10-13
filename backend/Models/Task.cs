@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 public class Task
 {
     public int Id { get; set; }
@@ -8,5 +10,6 @@ public class Task
     public List<TaskItem> TaskItems { get; set; } = new();
 
     public int ClientId { get; set; } 
+    [JsonIgnore]
     public User Client { get; set; } = null!; 
 }
