@@ -37,11 +37,9 @@ public class StatusLogsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<StatusLog>> CreateStatusLog(CreateStatusLogDto statusLogDto)
     {
-        // Verify that the TaskItemId exists
         var taskItem = await _context.TaskItems.FindAsync(statusLogDto.TaskItemId);
         if (taskItem == null) return BadRequest("TaskItem not found");
 
-        // Verify that the RunnerId exists (if provided)
         if (statusLogDto.RunnerId.HasValue)
         {
             var runner = await _context.Users.FindAsync(statusLogDto.RunnerId.Value);
@@ -58,8 +56,7 @@ public class StatusLogsController : ControllerBase
 
         _context.StatusLogs.Add(statusLog);
         await _context.SaveChangesAsync();
-        
-        // Return the status log with related data included
+
         var createdStatusLog = await _context.StatusLogs
             .Include(sl => sl.Runner)
             .FirstOrDefaultAsync(sl => sl.Id == statusLog.Id);
@@ -67,26 +64,26 @@ public class StatusLogsController : ControllerBase
         return CreatedAtAction(nameof(GetStatusLog), new { id = statusLog.Id }, createdStatusLog);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateStatusLog(int id, UpdateStatusLogDto statusLogDto)
     {
         if (id != statusLogDto.Id) return BadRequest();
         
-        // Verify that the TaskItemId exists
-        var taskItem = await _context.TaskItems.FindAsync(statusLogDto.TaskItemId);
-        if (taskItem == null) return BadRequest("TaskItem not found");
+        var statusLog = await _context.StatusLogs.FindAsync(id);
+        if (statusLog == null) return NotFound();
 
-        // Verify that the RunnerId exists (if provided)
-        if (statusLogDto.RunnerId.HasValue)
+        if (statusLogDto.TaskItemId != statusLog.TaskItemId)
+        {
+            var taskItem = await _context.TaskItems.FindAsync(statusLogDto.TaskItemId);
+            if (taskItem == null) return BadRequest("TaskItem not found");
+        }
+
+        if (statusLogDto.RunnerId != statusLog.RunnerId && statusLogDto.RunnerId.HasValue)
         {
             var runner = await _context.Users.FindAsync(statusLogDto.RunnerId.Value);
             if (runner == null) return BadRequest("Runner not found");
         }
 
-        var statusLog = await _context.StatusLogs.FindAsync(id);
-        if (statusLog == null) return NotFound();
-
-        // Update properties (but keep original CreatedAt)
         statusLog.TaskItemId = statusLogDto.TaskItemId;
         statusLog.RunnerId = statusLogDto.RunnerId;
         statusLog.Comment = statusLogDto.Comment;

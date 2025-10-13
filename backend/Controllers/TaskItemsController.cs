@@ -56,16 +56,19 @@ public class TaskItemsController : ControllerBase
         return CreatedAtAction(nameof(GetTaskItem), new { id = taskItem.Id }, createdTaskItem);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateTaskItem(int id, UpdateTaskItemDto taskItemDto)
     {
         if (id != taskItemDto.Id) return BadRequest();
         
-        var task = await _context.Tasks.FindAsync(taskItemDto.TaskId);
-        if (task == null) return BadRequest("Task not found");
-
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
+
+        if (taskItemDto.TaskId != taskItem.TaskId)
+        {
+            var task = await _context.Tasks.FindAsync(taskItemDto.TaskId);
+            if (task == null) return BadRequest("Task not found");
+        }
 
         taskItem.Description = taskItemDto.Description;
         taskItem.IsCompleted = taskItemDto.IsCompleted;
@@ -140,26 +143,15 @@ public class TaskItemsController : ControllerBase
         var taskItem = await _context.TaskItems.FindAsync(taskItemId);
         if (taskItem == null) return NotFound("TaskItem not found");
 
-        var statusLogs = await _context.StatusLogs
-            .Where(sl => sl.TaskItemId == taskItemId && statusLogIds.Contains(sl.Id))
-            .Include(sl => sl.Runner)
-            .Include(sl => sl.TaskItem)
-            .OrderByDescending(sl => sl.CreatedAt)
-            .ToListAsync();
+        IQueryable<StatusLog> query = _context.StatusLogs
+            .Where(sl => sl.TaskItemId == taskItemId);
 
-        return statusLogs;
-    }
+        if (statusLogIds != null && statusLogIds.Length > 0)
+        {
+            query = query.Where(sl => statusLogIds.Contains(sl.Id));
+        }
 
-    [HttpPost("{taskItemId}/statuslogs/filter")]
-    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByIdsPost(
-        int taskItemId, 
-        [FromBody] StatusLogFilterDto filterDto)
-    {
-        var taskItem = await _context.TaskItems.FindAsync(taskItemId);
-        if (taskItem == null) return NotFound("TaskItem not found");
-
-        var statusLogs = await _context.StatusLogs
-            .Where(sl => sl.TaskItemId == taskItemId && filterDto.StatusLogIds.Contains(sl.Id))
+        var statusLogs = await query
             .Include(sl => sl.Runner)
             .Include(sl => sl.TaskItem)
             .OrderByDescending(sl => sl.CreatedAt)

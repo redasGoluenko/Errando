@@ -57,24 +57,25 @@ public class TasksController : ControllerBase
         return CreatedAtAction(nameof(GetTask), new { id = task.Id }, createdTask);
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateTask(int id, UpdateTaskDto taskDto)
     {
         if (id != taskDto.Id) return BadRequest();
 
-        var client = await _context.Users.FindAsync(taskDto.ClientId);
-        if (client == null) return BadRequest("Client not found");
-
         var task = await _context.Tasks.FindAsync(id);
         if (task == null) return NotFound();
+
+        if (taskDto.ClientId != task.ClientId)
+        {
+            var client = await _context.Users.FindAsync(taskDto.ClientId);
+            if (client == null) return BadRequest("Client not found");
+        }
 
         task.Title = taskDto.Title;
         task.Description = taskDto.Description;
         task.ScheduledTime = taskDto.ScheduledTime;
         task.ClientId = taskDto.ClientId;
 
-        _context.Entry(task).State = EntityState.Modified;
-        
         try
         {
             await _context.SaveChangesAsync();
@@ -120,25 +121,15 @@ public class TasksController : ControllerBase
         var task = await _context.Tasks.FindAsync(taskId);
         if (task == null) return NotFound("Task not found");
 
-        var taskItems = await _context.TaskItems
-            .Where(ti => ti.TaskId == taskId && taskItemIds.Contains(ti.Id))
-            .Include(ti => ti.StatusLogs)
-            .ThenInclude(sl => sl.Runner)
-            .ToListAsync();
+        IQueryable<TaskItem> query = _context.TaskItems
+            .Where(ti => ti.TaskId == taskId);
 
-        return taskItems;
-    }
+        if (taskItemIds != null && taskItemIds.Length > 0)
+        {
+            query = query.Where(ti => taskItemIds.Contains(ti.Id));
+        }
 
-    [HttpPost("{taskId}/taskitems/filter")]
-    public async Task<ActionResult<IEnumerable<TaskItem>>> GetTaskItemsByIdsPost(
-        int taskId, 
-        [FromBody] TaskItemFilterDto filterDto)
-    {
-        var task = await _context.Tasks.FindAsync(taskId);
-        if (task == null) return NotFound("Task not found");
-
-        var taskItems = await _context.TaskItems
-            .Where(ti => ti.TaskId == taskId && filterDto.TaskItemIds.Contains(ti.Id))
+        var taskItems = await query
             .Include(ti => ti.StatusLogs)
             .ThenInclude(sl => sl.Runner)
             .ToListAsync();

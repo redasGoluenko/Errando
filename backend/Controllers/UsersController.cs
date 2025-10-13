@@ -51,7 +51,7 @@ public class UsersController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateUser(int id, User user)
     {
         if (id != user.Id) return BadRequest("ID mismatch");
