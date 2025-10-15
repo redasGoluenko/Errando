@@ -18,6 +18,8 @@ public class TasksController : ControllerBase
         => await _context.Tasks
             .Include(t => t.Client)
             .Include(t => t.TaskItems)
+            .ThenInclude(ti => ti.StatusLogs)
+            .ThenInclude(sl => sl.Runner)  // Optional: include runner info in status logs
             .ToListAsync();
 
     [HttpGet("{id}")]
@@ -135,6 +137,55 @@ public class TasksController : ControllerBase
             .ToListAsync();
 
         return taskItems;
+    }
+
+    // NEW: Get specific task item within a task
+    [HttpGet("{taskId}/taskitems/{taskItemId}")]
+    public async Task<ActionResult<TaskItem>> GetTaskItem(int taskId, int taskItemId)
+    {
+        var task = await _context.Tasks.FindAsync(taskId);
+        if (task == null) return NotFound("Task not found");
+
+        var taskItem = await _context.TaskItems
+            .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
+            .Include(ti => ti.StatusLogs)
+            .ThenInclude(sl => sl.Runner)
+            .FirstOrDefaultAsync();
+
+        if (taskItem == null) return NotFound("TaskItem not found");
+        return taskItem;
+    }
+
+    // NEW: Get all status logs for a specific task item within a task
+    [HttpGet("{taskId}/taskitems/{taskItemId}/statuslogs")]
+    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsForTaskItem(
+        int taskId, 
+        int taskItemId,
+        [FromQuery] int[] statusLogIds)
+    {
+        var task = await _context.Tasks.FindAsync(taskId);
+        if (task == null) return NotFound("Task not found");
+
+        var taskItem = await _context.TaskItems
+            .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
+            .FirstOrDefaultAsync();
+        if (taskItem == null) return NotFound("TaskItem not found");
+
+        IQueryable<StatusLog> query = _context.StatusLogs
+            .Where(sl => sl.TaskItemId == taskItemId);
+
+        if (statusLogIds != null && statusLogIds.Length > 0)
+        {
+            query = query.Where(sl => statusLogIds.Contains(sl.Id));
+        }
+
+        var statusLogs = await query
+            .Include(sl => sl.Runner)
+            .Include(sl => sl.TaskItem)
+            .OrderByDescending(sl => sl.CreatedAt)
+            .ToListAsync();
+
+        return statusLogs;
     }
 
     private bool TaskExists(int id)
