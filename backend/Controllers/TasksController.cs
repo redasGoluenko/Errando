@@ -19,7 +19,7 @@ public class TasksController : ControllerBase
             .Include(t => t.Client)
             .Include(t => t.TaskItems)
             .ThenInclude(ti => ti.StatusLogs)
-            .ThenInclude(sl => sl.Runner)  // Optional: include runner info in status logs
+            .ThenInclude(sl => sl.Runner)
             .ToListAsync();
 
     [HttpGet("{id}")]
@@ -120,7 +120,6 @@ public class TasksController : ControllerBase
         int taskId, 
         [FromQuery] int[] taskItemIds)
     {
-        // Check if task exists
         var task = await _context.Tasks.FindAsync(taskId);
         if (task == null) return NotFound("Task not found");
 
@@ -129,7 +128,6 @@ public class TasksController : ControllerBase
 
         if (taskItemIds != null && taskItemIds.Length > 0)
         {
-            // Check if specified task item IDs exist in this task
             var existingIds = await _context.TaskItems
                 .Where(ti => ti.TaskId == taskId && taskItemIds.Contains(ti.Id))
                 .Select(ti => ti.Id)
@@ -152,7 +150,6 @@ public class TasksController : ControllerBase
         return taskItems;
     }
 
-    // NEW: Get specific task item within a task
     [HttpGet("{taskId}/taskitems/{taskItemId}")]
     public async Task<ActionResult<TaskItem>> GetTaskItem(int taskId, int taskItemId)
     {
@@ -169,18 +166,15 @@ public class TasksController : ControllerBase
         return taskItem;
     }
 
-    // NEW: Get all status logs for a specific task item within a task
     [HttpGet("{taskId}/taskitems/{taskItemId}/statuslogs")]
     public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsForTaskItem(
         int taskId, 
         int taskItemId,
         [FromQuery] int[] statusLogIds)
     {
-        // Check if task exists
         var task = await _context.Tasks.FindAsync(taskId);
         if (task == null) return NotFound("Task not found");
 
-        // Check if task item exists and belongs to the task
         var taskItem = await _context.TaskItems
             .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
             .FirstOrDefaultAsync();
@@ -191,7 +185,6 @@ public class TasksController : ControllerBase
 
         if (statusLogIds != null && statusLogIds.Length > 0)
         {
-            // Check if specified status log IDs exist for this task item
             var existingIds = await _context.StatusLogs
                 .Where(sl => sl.TaskItemId == taskItemId && statusLogIds.Contains(sl.Id))
                 .Select(sl => sl.Id)
