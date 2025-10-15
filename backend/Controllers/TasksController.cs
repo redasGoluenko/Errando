@@ -120,6 +120,7 @@ public class TasksController : ControllerBase
         int taskId, 
         [FromQuery] int[] taskItemIds)
     {
+        // Check if task exists
         var task = await _context.Tasks.FindAsync(taskId);
         if (task == null) return NotFound("Task not found");
 
@@ -128,6 +129,18 @@ public class TasksController : ControllerBase
 
         if (taskItemIds != null && taskItemIds.Length > 0)
         {
+            // Check if specified task item IDs exist in this task
+            var existingIds = await _context.TaskItems
+                .Where(ti => ti.TaskId == taskId && taskItemIds.Contains(ti.Id))
+                .Select(ti => ti.Id)
+                .ToListAsync();
+
+            var missingIds = taskItemIds.Except(existingIds).ToArray();
+            if (missingIds.Length > 0)
+            {
+                return NotFound($"TaskItem(s) not found: {string.Join(", ", missingIds)}");
+            }
+
             query = query.Where(ti => taskItemIds.Contains(ti.Id));
         }
 
@@ -163,19 +176,33 @@ public class TasksController : ControllerBase
         int taskItemId,
         [FromQuery] int[] statusLogIds)
     {
+        // Check if task exists
         var task = await _context.Tasks.FindAsync(taskId);
         if (task == null) return NotFound("Task not found");
 
+        // Check if task item exists and belongs to the task
         var taskItem = await _context.TaskItems
             .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
             .FirstOrDefaultAsync();
-        if (taskItem == null) return NotFound("TaskItem not found");
+        if (taskItem == null) return NotFound("TaskItem not found or does not belong to specified task");
 
         IQueryable<StatusLog> query = _context.StatusLogs
             .Where(sl => sl.TaskItemId == taskItemId);
 
         if (statusLogIds != null && statusLogIds.Length > 0)
         {
+            // Check if specified status log IDs exist for this task item
+            var existingIds = await _context.StatusLogs
+                .Where(sl => sl.TaskItemId == taskItemId && statusLogIds.Contains(sl.Id))
+                .Select(sl => sl.Id)
+                .ToListAsync();
+
+            var missingIds = statusLogIds.Except(existingIds).ToArray();
+            if (missingIds.Length > 0)
+            {
+                return NotFound($"StatusLog(s) not found: {string.Join(", ", missingIds)}");
+            }
+
             query = query.Where(sl => statusLogIds.Contains(sl.Id));
         }
 
