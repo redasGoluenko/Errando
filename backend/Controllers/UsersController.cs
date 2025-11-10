@@ -44,10 +44,23 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
-        var users = await _context.Users.ToListAsync();
-        // niekada negrąžinti PasswordHash
-        users.ForEach(u => u.PasswordHash = string.Empty);
-        return users;
+        // Admin sees all users
+        if (User.IsInRole("Admin"))
+        {
+            var users = await _context.Users.ToListAsync();
+            users.ForEach(u => u.PasswordHash = string.Empty);
+            return users;
+        }
+
+        // Clients/Runners see only their own user
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+        var user = await _context.Users.FindAsync(currentUserId);
+        if (user == null) return NotFound();
+
+        user.PasswordHash = string.Empty;
+        return new List<User> { user };
     }
 
     [HttpGet("{id}")]
@@ -55,6 +68,19 @@ public class UsersController : ControllerBase
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) return NotFound();
+
+        // Admin can view any user
+        if (User.IsInRole("Admin"))
+        {
+            user.PasswordHash = string.Empty;
+            return user;
+        }
+
+        // Client/Runner can view only their own user
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+        if (currentUserId != id) return Forbid();
+
         user.PasswordHash = string.Empty;
         return user;
     }
@@ -212,7 +238,12 @@ public class UsersController : ControllerBase
 
         existingUser.Username = dto.Username;
         existingUser.Email = dto.Email;
-        existingUser.Role = dto.Role ?? existingUser.Role;
+
+        // Only Admin may change roles
+        if (User.IsInRole("Admin") && dto.Role != null)
+        {
+            existingUser.Role = dto.Role;
+        }
 
         // jeigu kliento DTO turi password (plain text) — hash'inti ir saugoti
         if (!string.IsNullOrEmpty(dto.Password))
