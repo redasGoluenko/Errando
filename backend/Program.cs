@@ -93,10 +93,15 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// remove or replace the dev-only block:
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Errando v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
@@ -105,6 +110,13 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Errando v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.MapControllers();
 

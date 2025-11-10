@@ -141,3 +141,15 @@ C:\Users\redas\Errando\backend\bin\Debug\net9.0\Microsoft.IdentityModel.Protocol
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\web.config
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\web.config
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\appsettings.Development.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\appsettings.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\backend.deps.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\backend.runtimeconfig.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\backend.staticwebassets.endpoints.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\appsettings.Development.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\appsettings.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.deps.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.runtimeconfig.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.staticwebassets.endpoints.json
