@@ -18,10 +18,42 @@ public class TaskItemsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TaskItem>>> GetTaskItems()
-        => await _context.TaskItems
-            .Include(ti => ti.Task)
-            .Include(ti => ti.StatusLogs)
-            .ToListAsync();
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return await _context.TaskItems
+                .Include(ti => ti.Task)
+                .Include(ti => ti.StatusLogs)
+                .ToListAsync();
+        }
+
+        if (User.IsInRole("Client"))
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+            return await _context.TaskItems
+                .Include(ti => ti.Task)
+                .Include(ti => ti.StatusLogs)
+                .Where(ti => ti.Task.ClientId == currentUserId)
+                .ToListAsync();
+        }
+
+        // Runners: only allow read of task items that have status logs assigned to them OR forbid
+        if (User.IsInRole("Runner"))
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var runnerId)) return Forbid();
+
+            return await _context.TaskItems
+                .Include(ti => ti.Task)
+                .Include(ti => ti.StatusLogs)
+                .Where(ti => ti.StatusLogs.Any(sl => sl.RunnerId == runnerId))
+                .ToListAsync();
+        }
+
+        return Forbid();
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<TaskItem>> GetTaskItem(int id)
@@ -33,7 +65,16 @@ public class TaskItemsController : ControllerBase
             .FirstOrDefaultAsync(ti => ti.Id == id);
 
         if (taskItem == null) return NotFound();
-        return taskItem;
+
+        if (User.IsInRole("Admin")) return taskItem;
+
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+        if (User.IsInRole("Client") && taskItem.Task.ClientId == currentUserId) return taskItem;
+        if (User.IsInRole("Runner") && taskItem.StatusLogs.Any(sl => sl.RunnerId == currentUserId)) return taskItem;
+
+        return Forbid();
     }
 
     [HttpPost]

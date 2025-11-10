@@ -18,11 +18,41 @@ public class StatusLogsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogs()
-        => await _context.StatusLogs
-            .Include(sl => sl.TaskItem)
-            .Include(sl => sl.Runner)
-            .OrderByDescending(sl => sl.CreatedAt)
-            .ToListAsync();
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return await _context.StatusLogs
+                .Include(sl => sl.TaskItem)
+                .Include(sl => sl.Runner)
+                .OrderByDescending(sl => sl.CreatedAt)
+                .ToListAsync();
+        }
+
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+        if (User.IsInRole("Client"))
+        {
+            return await _context.StatusLogs
+                .Include(sl => sl.TaskItem)
+                .Include(sl => sl.Runner)
+                .Where(sl => sl.TaskItem.Task.ClientId == currentUserId)
+                .OrderByDescending(sl => sl.CreatedAt)
+                .ToListAsync();
+        }
+
+        if (User.IsInRole("Runner"))
+        {
+            return await _context.StatusLogs
+                .Include(sl => sl.TaskItem)
+                .Include(sl => sl.Runner)
+                .Where(sl => sl.RunnerId == currentUserId)
+                .OrderByDescending(sl => sl.CreatedAt)
+                .ToListAsync();
+        }
+
+        return Forbid();
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<StatusLog>> GetStatusLog(int id)
@@ -32,9 +62,17 @@ public class StatusLogsController : ControllerBase
             .ThenInclude(ti => ti.Task)
             .Include(sl => sl.Runner)
             .FirstOrDefaultAsync(sl => sl.Id == id);
-        
+
         if (statusLog == null) return NotFound();
-        return statusLog;
+        if (User.IsInRole("Admin")) return statusLog;
+
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+        if (User.IsInRole("Client") && statusLog.TaskItem.Task.ClientId == currentUserId) return statusLog;
+        if (User.IsInRole("Runner") && statusLog.RunnerId == currentUserId) return statusLog;
+
+        return Forbid();
     }
 
     // only Runner or Admin can create status logs
@@ -137,19 +175,49 @@ public class StatusLogsController : ControllerBase
     [HttpGet("by-taskitem/{taskItemId}")]
     public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByTaskItem(int taskItemId)
     {
+        var taskItem = await _context.TaskItems
+            .Include(ti => ti.Task)
+            .FirstOrDefaultAsync(ti => ti.Id == taskItemId);
+        if (taskItem == null) return NotFound();
+
+        if (User.IsInRole("Admin")) { /* continue */ }
+        else
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+            if (User.IsInRole("Client") && taskItem.Task.ClientId != currentUserId) return Forbid();
+            if (User.IsInRole("Runner"))
+            {
+                // runner can view only if they have logs for this taskItem
+                var has = await _context.StatusLogs.AnyAsync(sl => sl.TaskItemId == taskItemId && sl.RunnerId == currentUserId);
+                if (!has) return Forbid();
+            }
+        }
+
         var statusLogs = await _context.StatusLogs
             .Where(sl => sl.TaskItemId == taskItemId)
             .Include(sl => sl.TaskItem)
             .Include(sl => sl.Runner)
             .OrderByDescending(sl => sl.CreatedAt)
             .ToListAsync();
-            
+
         return statusLogs;
     }
 
     [HttpGet("by-runner/{runnerId}")]
     public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByRunner(int runnerId)
     {
+        if (User.IsInRole("Admin")) { /* allow */ }
+        else
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+            // only the runner themself can query their logs
+            if (!User.IsInRole("Runner") || currentUserId != runnerId) return Forbid();
+        }
+
         var statusLogs = await _context.StatusLogs
             .Where(sl => sl.RunnerId == runnerId)
             .Include(sl => sl.TaskItem)

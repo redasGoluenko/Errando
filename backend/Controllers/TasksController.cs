@@ -18,24 +18,48 @@ public class TasksController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Task>>> GetTasks()
-        => await _context.Tasks
-            .Include(t => t.Client)
-            .Include(t => t.TaskItems)
-            .ThenInclude(ti => ti.StatusLogs)
-            .ThenInclude(sl => sl.Runner)
-            .ToListAsync();
+    {
+        // Admin sees all
+        if (User.IsInRole("Admin"))
+        {
+            return await _context.Tasks
+                .Include(t => t.Client)
+                .ToListAsync();
+        }
+
+        // Clients see only their tasks
+        if (User.IsInRole("Client"))
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var currentUserId))
+                return Forbid();
+
+            return await _context.Tasks
+                .Where(t => t.ClientId == currentUserId)
+                .Include(t => t.Client)
+                .ToListAsync();
+        }
+
+        // Runners / others: default to forbidden for task listing
+        return Forbid();
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Task>> GetTask(int id)
     {
         var task = await _context.Tasks
             .Include(t => t.Client)
-            .Include(t => t.TaskItems)
-            .ThenInclude(ti => ti.StatusLogs)
             .FirstOrDefaultAsync(t => t.Id == id);
-        
         if (task == null) return NotFound();
-        return task;
+
+        if (User.IsInRole("Admin")) return task;
+
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+
+        if (User.IsInRole("Client") && task.ClientId == currentUserId) return task;
+
+        return Forbid();
     }
 
     [HttpPost]
