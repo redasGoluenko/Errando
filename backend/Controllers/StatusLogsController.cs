@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // require authenticated user by default
 public class StatusLogsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -34,7 +37,9 @@ public class StatusLogsController : ControllerBase
         return statusLog;
     }
 
+    // only Runner or Admin can create status logs
     [HttpPost]
+    [Authorize(Policy = "RunnerOrAdmin")]
     public async Task<ActionResult<StatusLog>> CreateStatusLog(CreateStatusLogDto statusLogDto)
     {
         var taskItem = await _context.TaskItems.FindAsync(statusLogDto.TaskItemId);
@@ -44,6 +49,18 @@ public class StatusLogsController : ControllerBase
         {
             var runner = await _context.Users.FindAsync(statusLogDto.RunnerId.Value);
             if (runner == null) return BadRequest("Runner not found");
+        }
+
+        // If not admin, ensure runnerId (if present) equals current user
+        var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!User.IsInRole("Admin") && currentUserIdClaim != null)
+        {
+            var currentUserId = int.Parse(currentUserIdClaim);
+            if (statusLogDto.RunnerId.HasValue && statusLogDto.RunnerId.Value != currentUserId)
+                return Forbid();
+            // if RunnerId not provided, assign current user as runner
+            if (!statusLogDto.RunnerId.HasValue)
+                statusLogDto.RunnerId = currentUserId;
         }
 
         var statusLog = new StatusLog
@@ -64,7 +81,9 @@ public class StatusLogsController : ControllerBase
         return CreatedAtAction(nameof(GetStatusLog), new { id = statusLog.Id }, createdStatusLog);
     }
 
+    // only Admin can update
     [HttpPatch("{id}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> UpdateStatusLog(int id, UpdateStatusLogDto statusLogDto)
     {
         if (id != statusLogDto.Id) return BadRequest();
@@ -102,7 +121,9 @@ public class StatusLogsController : ControllerBase
         return NoContent();
     }
 
+    // only Admin can delete
     [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> DeleteStatusLog(int id)
     {
         var statusLog = await _context.StatusLogs.FindAsync(id);

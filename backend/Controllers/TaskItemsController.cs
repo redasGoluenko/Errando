@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TaskItemsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -28,16 +31,25 @@ public class TaskItemsController : ControllerBase
             .Include(ti => ti.StatusLogs)
             .ThenInclude(sl => sl.Runner)
             .FirstOrDefaultAsync(ti => ti.Id == id);
-        
+
         if (taskItem == null) return NotFound();
         return taskItem;
     }
 
     [HttpPost]
+    [Authorize(Policy = "ClientOrAdmin")]
     public async Task<ActionResult<TaskItem>> CreateTaskItem(CreateTaskItemDto taskItemDto)
     {
         var task = await _context.Tasks.FindAsync(taskItemDto.TaskId);
         if (task == null) return BadRequest("Task not found");
+
+        // only Admin or the client who owns the parent task can create
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != task.ClientId.ToString())
+                return Forbid();
+        }
 
         var taskItem = new TaskItem
         {
@@ -48,11 +60,11 @@ public class TaskItemsController : ControllerBase
 
         _context.TaskItems.Add(taskItem);
         await _context.SaveChangesAsync();
-        
+
         var createdTaskItem = await _context.TaskItems
             .Include(ti => ti.Task)
             .FirstOrDefaultAsync(ti => ti.Id == taskItem.Id);
-            
+
         return CreatedAtAction(nameof(GetTaskItem), new { id = taskItem.Id }, createdTaskItem);
     }
 
@@ -60,9 +72,20 @@ public class TaskItemsController : ControllerBase
     public async Task<IActionResult> UpdateTaskItem(int id, UpdateTaskItemDto taskItemDto)
     {
         if (id != taskItemDto.Id) return BadRequest();
-        
+
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
+
+        var parentTask = await _context.Tasks.FindAsync(taskItem.TaskId);
+        if (parentTask == null) return BadRequest("Parent task not found");
+
+        // only Admin or parent task owner can update
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != parentTask.ClientId.ToString())
+                return Forbid();
+        }
 
         if (taskItemDto.TaskId != taskItem.TaskId)
         {
@@ -73,7 +96,7 @@ public class TaskItemsController : ControllerBase
         taskItem.Description = taskItemDto.Description;
         taskItem.IsCompleted = taskItemDto.IsCompleted;
         taskItem.TaskId = taskItemDto.TaskId;
-        
+
         try
         {
             await _context.SaveChangesAsync();
@@ -93,22 +116,20 @@ public class TaskItemsController : ControllerBase
     {
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
-        
+
+        var parentTask = await _context.Tasks.FindAsync(taskItem.TaskId);
+        if (parentTask == null) return BadRequest("Parent task not found");
+
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != parentTask.ClientId.ToString())
+                return Forbid();
+        }
+
         _context.TaskItems.Remove(taskItem);
         await _context.SaveChangesAsync();
         return NoContent();
-    }
-
-    [HttpGet("by-task/{taskId}")]
-    public async Task<ActionResult<IEnumerable<TaskItem>>> GetTaskItemsByTask(int taskId)
-    {
-        var taskItems = await _context.TaskItems
-            .Where(ti => ti.TaskId == taskId)
-            .Include(ti => ti.Task)
-            .Include(ti => ti.StatusLogs)
-            .ToListAsync();
-            
-        return taskItems;
     }
 
     [HttpPatch("{id}/complete")]
@@ -117,9 +138,19 @@ public class TaskItemsController : ControllerBase
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
 
+        var parentTask = await _context.Tasks.FindAsync(taskItem.TaskId);
+        if (parentTask == null) return BadRequest("Parent task not found");
+
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != parentTask.ClientId.ToString())
+                return Forbid();
+        }
+
         taskItem.IsCompleted = true;
         await _context.SaveChangesAsync();
-        
+
         return NoContent();
     }
 
@@ -129,35 +160,20 @@ public class TaskItemsController : ControllerBase
         var taskItem = await _context.TaskItems.FindAsync(id);
         if (taskItem == null) return NotFound();
 
-        taskItem.IsCompleted = false;
-        await _context.SaveChangesAsync();
-        
-        return NoContent();
-    }
+        var parentTask = await _context.Tasks.FindAsync(taskItem.TaskId);
+        if (parentTask == null) return BadRequest("Parent task not found");
 
-    [HttpGet("{taskItemId}/statuslogs")]
-    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsByIds(
-        int taskItemId, 
-        [FromQuery] int[] statusLogIds)
-    {
-        var taskItem = await _context.TaskItems.FindAsync(taskItemId);
-        if (taskItem == null) return NotFound("TaskItem not found");
-
-        IQueryable<StatusLog> query = _context.StatusLogs
-            .Where(sl => sl.TaskItemId == taskItemId);
-
-        if (statusLogIds != null && statusLogIds.Length > 0)
+        if (!User.IsInRole("Admin"))
         {
-            query = query.Where(sl => statusLogIds.Contains(sl.Id));
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != parentTask.ClientId.ToString())
+                return Forbid();
         }
 
-        var statusLogs = await query
-            .Include(sl => sl.Runner)
-            .Include(sl => sl.TaskItem)
-            .OrderByDescending(sl => sl.CreatedAt)
-            .ToListAsync();
+        taskItem.IsCompleted = false;
+        await _context.SaveChangesAsync();
 
-        return statusLogs;
+        return NoContent();
     }
 
     private bool TaskItemExists(int id)

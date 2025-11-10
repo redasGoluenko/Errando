@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TasksController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -36,10 +39,19 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "ClientOrAdmin")]
     public async Task<ActionResult<Task>> CreateTask(CreateTaskDto taskDto)
     {
         var client = await _context.Users.FindAsync(taskDto.ClientId);
         if (client == null) return BadRequest("Client not found");
+
+        // if not Admin, ensure current user is the client
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != taskDto.ClientId.ToString())
+                return Forbid();
+        }
 
         var task = new Task
         {
@@ -51,11 +63,11 @@ public class TasksController : ControllerBase
 
         _context.Tasks.Add(task);
         await _context.SaveChangesAsync();
-   
+
         var createdTask = await _context.Tasks
             .Include(t => t.Client)
             .FirstOrDefaultAsync(t => t.Id == task.Id);
-            
+
         return CreatedAtAction(nameof(GetTask), new { id = task.Id }, createdTask);
     }
 
@@ -66,6 +78,14 @@ public class TasksController : ControllerBase
 
         var task = await _context.Tasks.FindAsync(id);
         if (task == null) return NotFound();
+
+        // only Admin or task owner (client) can update
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != task.ClientId.ToString())
+                return Forbid();
+        }
 
         if (taskDto.ClientId != task.ClientId)
         {
@@ -97,7 +117,15 @@ public class TasksController : ControllerBase
     {
         var task = await _context.Tasks.FindAsync(id);
         if (task == null) return NotFound();
-        
+
+        // only Admin or task owner (client) can delete
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null || currentUserId != task.ClientId.ToString())
+                return Forbid();
+        }
+
         _context.Tasks.Remove(task);
         await _context.SaveChangesAsync();
         return NoContent();
