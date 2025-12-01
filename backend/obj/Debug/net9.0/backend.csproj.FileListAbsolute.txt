@@ -153,3 +153,15 @@ C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\appsettings.json
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.deps.json
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.runtimeconfig.json
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\backend.staticwebassets.endpoints.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\web.config
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\web.config
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\appsettings.Development.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\appsettings.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\backend.deps.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\backend.runtimeconfig.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\backend.staticwebassets.endpoints.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\appsettings.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\backend.deps.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\backend.runtimeconfig.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\backend.staticwebassets.endpoints.json
