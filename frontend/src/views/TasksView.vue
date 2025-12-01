@@ -138,6 +138,11 @@ function isUpcoming(isoString: string): boolean {
   return new Date(isoString) > new Date()
 }
 
+// Check if task is overdue
+function isOverdue(isoString: string): boolean {
+  return new Date(isoString) < new Date()
+}
+
 // Can user edit/delete this task?
 function canModifyTask(task: Task): boolean {
   if (userRole === 'Admin') return true

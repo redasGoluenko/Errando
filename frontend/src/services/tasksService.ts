@@ -7,7 +7,12 @@ export interface Task {
   scheduledTime: string
   taskItems: any[]
   clientId: number
-  runnerId?: number | null // ← ADD THIS
+  runnerId?: number | null
+  runner?: {
+    id: number
+    username: string
+    role: string
+  } | null
 }
 
 export interface CreateTaskRequest {

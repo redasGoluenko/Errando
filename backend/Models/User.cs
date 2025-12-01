@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 public class User
 {
@@ -13,6 +14,7 @@ public class User
     public string Email { get; set; } = null!;
     
     [Required]
+    [JsonIgnore] // ← ADD THIS LINE!
     public string PasswordHash { get; set; } = null!;
     
     public string Role { get; set; } = "Client";

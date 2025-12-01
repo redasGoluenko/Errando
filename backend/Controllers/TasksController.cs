@@ -18,12 +18,13 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks() // ← CHANGED
+    public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks()
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-        IQueryable<TodoTask> query = _context.Tasks;
+        IQueryable<TodoTask> query = _context.Tasks
+            .Include(t => t.Runner); // ← ADD THIS
 
         if (userRole == "Client")
         {
@@ -34,9 +35,11 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TodoTask>> GetTask(int id) // ← CHANGED
+    public async Task<ActionResult<TodoTask>> GetTask(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.Tasks
+            .Include(t => t.Runner) // ← ADD THIS
+            .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null)
         {
