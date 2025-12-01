@@ -1,3 +1,4 @@
+import './assets/main.css'  // <- pridėk šią eilutę
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
