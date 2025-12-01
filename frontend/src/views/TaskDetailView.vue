@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { tasksService, type Task } from '@/services/tasksService'
 import { taskItemsService, type TaskItem, type CreateTaskItemRequest, type UpdateTaskItemRequest } from '@/services/taskItemsService'
 import { authService } from '@/services/api'
+import { statusLogsService, type StatusLog } from '@/services/statusLogsService'
 import Modal from '@/components/Modal.vue'
 import TaskItemForm from '@/components/TaskItemForm.vue'
 import Toast from '@/components/Toast.vue'
@@ -26,11 +27,19 @@ const toastType = ref<'success' | 'error'>('success')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showStatusModal = ref(false)
 const selectedTaskItem = ref<TaskItem | null>(null)
+const showEditItemModal = ref(false)
+const showDeleteItemModal = ref(false)
+const itemDescription = ref('')
 
 // User info
 const userRole = authService.getRole()
 const userId = authService.getUserId()
+
+// New status log fields
+const newStatus = ref('')
+const newComment = ref('')
 
 const taskId = computed(() => parseInt(route.params.id as string))
 
@@ -148,10 +157,57 @@ async function handleDeleteTaskItem() {
   }
 }
 
+// Load status logs for a task item
+const statusLogs = ref<Map<number, StatusLog[]>>(new Map())
+const loadingLogs = ref<Set<number>>(new Set())
+
+async function loadStatusLogs(taskItemId: number) {
+  loadingLogs.value.add(taskItemId)
+  try {
+    const logs = await statusLogsService.getStatusLogs(taskItemId)
+    statusLogs.value.set(taskItemId, logs)
+  } catch (err: any) {
+    console.error('Failed to load status logs:', err)
+  } finally {
+    loadingLogs.value.delete(taskItemId)
+  }
+}
+
+function openStatusModal(item: TaskItem) {
+  selectedTaskItem.value = item
+  newStatus.value = item.status
+  newComment.value = ''
+  showStatusModal.value = true
+}
+
+// Update status log
+async function handleUpdateStatus() {
+  if (!selectedTaskItem.value) return
+
+  try {
+    await statusLogsService.createStatusLog({
+      taskItemId: selectedTaskItem.value.id,
+      status: newStatus.value,
+      comment: newComment.value,
+    })
+
+    // Reload task items and logs
+    await fetchTaskItems()
+    await loadStatusLogs(selectedTaskItem.value.id)
+    
+    showStatusModal.value = false
+    showNotification('Status updated successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to update status:', err)
+    showNotification(err.response?.data?.message || 'Failed to update status', 'error')
+  }
+}
+
 function closeModals() {
   showCreateModal.value = false
   showEditModal.value = false
   showDeleteModal.value = false
+  showStatusModal.value = false
   selectedTaskItem.value = null
 }
 
@@ -180,6 +236,76 @@ function canModify(): boolean {
   if (userRole === 'Admin') return true
   if (userRole === 'Client' && task.value.clientId === userId) return true
   return false
+}
+
+function getStatusColor(status: string): string {
+  switch (status.toLowerCase()) {
+    case 'completed':
+      return 'text-green-600 bg-green-50'
+    case 'inprogress':
+    case 'in progress':
+      return 'text-blue-600 bg-blue-50'
+    case 'pending':
+    default:
+      return 'text-gray-600 bg-gray-50'
+  }
+}
+
+function formatTimestamp(isoString: string): string {
+  const date = new Date(isoString)
+  return date.toLocaleString('lt-LT', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+// Edit task item
+function openEditItemModal(item: TaskItem) {
+  selectedTaskItem.value = item
+  itemDescription.value = item.description
+  showEditItemModal.value = true
+}
+
+// Delete task item
+function openDeleteItemModal(item: TaskItem) {
+  selectedTaskItem.value = item
+  showDeleteItemModal.value = true
+}
+
+async function handleEditItem() {
+  if (!selectedTaskItem.value) return
+
+  try {
+    await taskItemsService.updateTaskItem(selectedTaskItem.value.id, {
+      description: itemDescription.value,
+      isCompleted: selectedTaskItem.value.isCompleted,
+      taskId: selectedTaskItem.value.taskId,
+    })
+
+    showEditItemModal.value = false
+    await fetchTaskItems()
+    showNotification('Task item updated successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to update task item:', err)
+    showNotification(err.response?.data?.message || 'Failed to update task item', 'error')
+  }
+}
+
+async function handleDeleteItem() {
+  if (!selectedTaskItem.value) return
+
+  try {
+    await taskItemsService.deleteTaskItem(selectedTaskItem.value.id)
+    showDeleteItemModal.value = false
+    await fetchTaskItems()
+    showNotification('Task item deleted successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to delete task item:', err)
+    showNotification(err.response?.data?.message || 'Failed to delete task item', 'error')
+  }
 }
 </script>
 
@@ -330,68 +456,113 @@ function canModify(): boolean {
           </div>
 
           <!-- Items List -->
-          <ul v-else class="divide-y divide-gray-200">
-            <li
-              v-for="item in taskItems"
-              :key="item.id"
-              class="px-6 py-4 hover:bg-gray-50 transition"
-            >
-              <div class="flex items-center gap-4">
-                <!-- Checkbox -->
-                <input
-                  type="checkbox"
-                  :checked="item.isCompleted"
-                  @change="toggleComplete(item)"
-                  :disabled="!canModify()"
-                  class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+          <div
+            v-for="item in taskItems"
+            :key="item.id"
+            class="bg-white rounded-lg shadow-md p-6"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ item.description }}</h4>
+                <span
+                  :class="[
+                    'inline-block px-3 py-1 text-sm font-medium rounded-full',
+                    getStatusColor(item.status),
+                  ]"
+                >
+                  {{ item.status }}
+                </span>
+              </div>
 
-                <!-- Description -->
-                <div class="flex-1">
-                  <p
-                    :class="[
-                      'text-gray-900',
-                      item.isCompleted && 'line-through text-gray-500',
-                    ]"
-                  >
-                    {{ item.description }}
-                  </p>
+              <!-- Update Status Button (Runner only) -->
+              <div v-if="userRole === 'Runner' && task.runnerId === userId" class="flex gap-2">
+                <button
+                  @click="openStatusModal(item)"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+                >
+                  Update Status
+                </button>
+                <button
+                  @click="openEditItemModal(item)"
+                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="openDeleteItemModal(item)"
+                  class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition duration-200"
+                >
+                  Delete
+                </button>
+              </div>
+
+              <!-- Edit/Delete buttons (Client/Admin) -->
+              <div v-else-if="userRole === 'Client' || userRole === 'Admin'" class="flex gap-2">
+                <button
+                  @click="openEditItemModal(item)"
+                  class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-200"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="openDeleteItemModal(item)"
+                  class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition duration-200"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            <!-- Status Logs Section -->
+            <div class="mt-4 border-t pt-4">
+              <button
+                @click="loadStatusLogs(item.id)"
+                class="text-sm text-blue-600 hover:text-blue-800 mb-3"
+              >
+                {{ statusLogs.get(item.id) ? '🔄 Refresh History' : '📜 View Status History' }}
+              </button>
+
+              <!-- Status Logs Timeline -->
+              <div v-if="statusLogs.get(item.id)" class="space-y-3">
+                <div
+                  v-for="log in statusLogs.get(item.id)"
+                  :key="log.id"
+                  class="flex gap-3 text-sm"
+                >
+                  <div class="flex-shrink-0">
+                    <div
+                      :class="[
+                        'w-2 h-2 rounded-full mt-2',
+                        log.status.toLowerCase() === 'completed' ? 'bg-green-500' : 
+                        log.status.toLowerCase() === 'inprogress' || log.status.toLowerCase() === 'in progress' ? 'bg-blue-500' : 
+                        'bg-gray-400'
+                      ]"
+                    ></div>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span :class="['font-medium', getStatusColor(log.status)]">
+                        {{ log.status }}
+                      </span>
+                      <span class="text-gray-500">•</span>
+                      <span class="text-gray-600">{{ log.runner?.username || `Runner #${log.runnerId}` }}</span>
+                      <span class="text-gray-500">•</span>
+                      <span class="text-gray-500 text-xs">{{ formatTimestamp(log.timestamp) }}</span>
+                    </div>
+                    <p v-if="log.comment" class="text-gray-700">{{ log.comment }}</p>
+                  </div>
                 </div>
 
-                <!-- Actions -->
-                <div v-if="canModify()" class="flex items-center gap-2">
-                  <button
-                    @click="openEditModal(item)"
-                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    title="Edit item"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    @click="openDeleteModal(item)"
-                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete item"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+                <div v-if="loadingLogs.has(item.id)" class="text-center py-2">
+                  <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+
+                <div v-if="statusLogs.get(item.id)?.length === 0" class="text-sm text-gray-500 italic">
+                  No status history yet
                 </div>
               </div>
-            </li>
-          </ul>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -452,6 +623,123 @@ function canModify(): boolean {
           >
             Cancel
           </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Update Status Modal (Runner) -->
+    <Modal :show="showStatusModal" @close="showStatusModal = false">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Update Status</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              v-model="newStatus"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="Pending">Pending</option>
+              <option value="InProgress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Comment (optional)
+            </label>
+            <textarea
+              v-model="newComment"
+              rows="3"
+              placeholder="Add a note about this status change..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            ></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              @click="showStatusModal = false"
+              class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleUpdateStatus"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+            >
+              Update Status
+            </button>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Edit Item Modal (Client/Admin) -->
+    <Modal :show="showEditItemModal" @close="showEditItemModal = false">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Edit Task Item</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <input
+              v-model="itemDescription"
+              type="text"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter task item description"
+            />
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              @click="showEditItemModal = false"
+              class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleEditItem"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Delete Item Modal -->
+    <Modal :show="showDeleteItemModal" @close="showDeleteItemModal = false">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Delete Task Item</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <p class="text-gray-600">
+            Are you sure you want to delete this task item? This action cannot be undone.
+          </p>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              @click="showDeleteItemModal = false"
+              class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleDeleteItem"
+              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </template>
     </Modal>

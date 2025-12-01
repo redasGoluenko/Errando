@@ -3,6 +3,7 @@ import apiClient from './api'
 export interface TaskItem {
   id: number
   description: string
+  status: string
   isCompleted: boolean
   taskId: number
 }
@@ -14,7 +15,6 @@ export interface CreateTaskItemRequest {
 }
 
 export interface UpdateTaskItemRequest {
-  id: number
   description: string
   isCompleted: boolean
   taskId: number
@@ -51,12 +51,7 @@ export const taskItemsService = {
   async createTaskItem(data: CreateTaskItemRequest): Promise<TaskItem> {
     console.log('📤 CREATE TASK ITEM REQUEST:', data)
     try {
-      // Add id: 0 to satisfy backend validation
-      const payload = {
-        id: 0, // ← ADD THIS
-        ...data,
-      }
-      const response = await apiClient.post<TaskItem>('/TaskItems', payload)
+      const response = await apiClient.post<TaskItem>('/TaskItems', data)
       console.log('✅ CREATE TASK ITEM SUCCESS:', response.data)
       return response.data
     } catch (error: any) {
@@ -67,9 +62,9 @@ export const taskItemsService = {
 
   // Update task item
   async updateTaskItem(id: number, data: UpdateTaskItemRequest): Promise<TaskItem> {
-    console.log('📤 UPDATE TASK ITEM REQUEST:', { id, data })
+    console.log('📤 UPDATE TASK ITEM REQUEST:', id, data)
     try {
-      const response = await apiClient.patch<TaskItem>(`/TaskItems/${id}`, data)
+      const response = await apiClient.put<TaskItem>(`/TaskItems/${id}`, data)
       console.log('✅ UPDATE TASK ITEM SUCCESS:', response.data)
       return response.data
     } catch (error: any) {
@@ -83,7 +78,7 @@ export const taskItemsService = {
     console.log('📤 DELETE TASK ITEM REQUEST:', id)
     try {
       await apiClient.delete(`/TaskItems/${id}`)
-      console.log('✅ DELETE TASK ITEM SUCCESS')
+      console.log('✅ DELETE TASK ITEM SUCCESS:', id)
     } catch (error: any) {
       console.error('❌ DELETE TASK ITEM ERROR:', error.response?.data)
       throw error
@@ -92,16 +87,13 @@ export const taskItemsService = {
 
   // Toggle completion status
   async toggleComplete(id: number, isCompleted: boolean): Promise<TaskItem> {
-    console.log('📤 TOGGLE TASK ITEM COMPLETE:', { id, isCompleted })
+    console.log('📤 TOGGLE TASK ITEM COMPLETE:', id, isCompleted)
     try {
-      const endpoint = isCompleted
-        ? `/TaskItems/${id}/complete`
-        : `/TaskItems/${id}/incomplete`
-      const response = await apiClient.patch<TaskItem>(endpoint)
-      console.log('✅ TOGGLE COMPLETE SUCCESS:', response.data)
+      const response = await apiClient.patch<TaskItem>(`/TaskItems/${id}/toggle`, { isCompleted })
+      console.log('✅ TOGGLE TASK ITEM SUCCESS:', response.data)
       return response.data
     } catch (error: any) {
-      console.error('❌ TOGGLE COMPLETE ERROR:', error.response?.data)
+      console.error('❌ TOGGLE TASK ITEM ERROR:', error.response?.data)
       throw error
     }
   },

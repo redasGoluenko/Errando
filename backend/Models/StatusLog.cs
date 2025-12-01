@@ -13,14 +13,18 @@ public class StatusLog
     [JsonIgnore]
     public TaskItem? TaskItem { get; set; }
 
-    public int? RunnerId { get; set; }
-
-    [JsonIgnore]
-    public User? Runner { get; set; }
-
     [Required]
+    [StringLength(50)]
+    public string Status { get; set; } = string.Empty;
+
     [StringLength(500)]
     public string Comment { get; set; } = string.Empty;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Required]
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    [Required]
+    public int RunnerId { get; set; }
+
+    public User? Runner { get; set; }
 }
