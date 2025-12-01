@@ -151,4 +151,55 @@ public class TasksController : ControllerBase
     {
         return _context.Tasks.Any(e => e.Id == id);
     }
+
+    // PATCH: api/Tasks/{id}/assign - Runner assigns task to themselves
+    [HttpPatch("{id}/assign")]
+    [Authorize(Roles = "Runner")]
+    public async Task<ActionResult<TodoTask>> AssignTask(int id)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found" });
+        }
+
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+
+        // Check if already assigned
+        if (task.RunnerId.HasValue)
+        {
+            return BadRequest(new { message = "Task is already assigned to a runner" });
+        }
+
+        task.RunnerId = userId;
+        await _context.SaveChangesAsync();
+
+        return task;
+    }
+
+    // PATCH: api/Tasks/{id}/unassign - Runner unassigns themselves
+    [HttpPatch("{id}/unassign")]
+    [Authorize(Roles = "Runner,Admin")]
+    public async Task<ActionResult<TodoTask>> UnassignTask(int id)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found" });
+        }
+
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        // Runner can only unassign their own tasks, Admin can unassign any
+        if (userRole == "Runner" && task.RunnerId != userId)
+        {
+            return Forbid();
+        }
+
+        task.RunnerId = null;
+        await _context.SaveChangesAsync();
+
+        return task;
+    }
 }

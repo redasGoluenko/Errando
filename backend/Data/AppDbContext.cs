@@ -24,6 +24,12 @@ namespace Errando.Data
                 .HasForeignKey(t => t.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<TodoTask>()
+                .HasOne(t => t.Runner)
+                .WithMany()
+                .HasForeignKey(t => t.RunnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<TaskItem>()
                 .HasOne(ti => ti.Task)
                 .WithMany(t => t.TaskItems)

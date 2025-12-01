@@ -63,10 +63,11 @@
           </div>
         </router-link>
 
-        <!-- Runner: View Assigned Tasks (placeholder for now) -->
-        <div
+        <!-- Runner: View Assigned Tasks -->
+        <router-link
           v-if="role === 'Runner'"
-          class="block bg-white rounded-lg shadow-md p-6 opacity-50 cursor-not-allowed"
+          to="/runner/tasks"
+          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
         >
           <div class="flex items-center gap-4">
             <div class="p-3 bg-green-100 rounded-lg">
@@ -75,11 +76,11 @@
               </svg>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-800">Assigned Tasks</h3>
-              <p class="text-sm text-gray-600">Coming soon...</p>
+              <h3 class="text-lg font-semibold text-gray-800">My Tasks</h3>
+              <p class="text-sm text-gray-600">View and manage assigned tasks</p>
             </div>
           </div>
-        </div>
+        </router-link>
 
       </div>
     </main>

@@ -5,8 +5,9 @@ export interface Task {
   title: string
   description: string
   scheduledTime: string
+  taskItems: any[]
   clientId: number
-  clientUsername?: string // Optional: for display
+  runnerId?: number | null // ← ADD THIS
 }
 
 export interface CreateTaskRequest {
@@ -92,6 +93,32 @@ export const tasksService = {
       console.log('✅ DELETE TASK SUCCESS')
     } catch (error: any) {
       console.error('❌ DELETE TASK ERROR:', error.response?.data)
+      throw error
+    }
+  },
+
+  // Assign task to runner (Runner only)
+  async assignTask(taskId: number): Promise<Task> {
+    console.log('📤 ASSIGN TASK REQUEST:', taskId)
+    try {
+      const response = await apiClient.patch<Task>(`/Tasks/${taskId}/assign`)
+      console.log('✅ ASSIGN TASK SUCCESS:', response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('❌ ASSIGN TASK ERROR:', error.response?.data)
+      throw error
+    }
+  },
+
+  // Unassign task from runner (Runner/Admin)
+  async unassignTask(taskId: number): Promise<Task> {
+    console.log('📤 UNASSIGN TASK REQUEST:', taskId)
+    try {
+      const response = await apiClient.patch<Task>(`/Tasks/${taskId}/unassign`)
+      console.log('✅ UNASSIGN TASK SUCCESS:', response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('❌ UNASSIGN TASK ERROR:', error.response?.data)
       throw error
     }
   },

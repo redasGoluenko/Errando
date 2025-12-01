@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Errando.Data;
 
-public class TodoTask // ← RENAMED from Task
+public class TodoTask
 {
     public int Id { get; set; }
 
@@ -24,4 +24,10 @@ public class TodoTask // ← RENAMED from Task
 
     [JsonIgnore]
     public User? Client { get; set; }
+
+    // NEW: Runner assignment
+    public int? RunnerId { get; set; } // ← PRIDĖJOME
+
+    [JsonIgnore]
+    public User? Runner { get; set; } // ← PRIDĖJOME
 }
