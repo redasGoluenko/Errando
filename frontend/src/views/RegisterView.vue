@@ -1,4 +1,4 @@
-<!-- filepath: frontend/src/views/LoginView.vue -->
+<!-- filepath: frontend/src/views/RegisterView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -6,47 +6,80 @@ import { authService } from '@/services/api'
 
 const router = useRouter()
 const username = ref('')
+const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const error = ref('')
+const success = ref('')
 const loading = ref(false)
 
-async function handleLogin() {
-  if (!username.value || !password.value) {
-    error.value = 'Username and password are required'
+async function handleRegister() {
+  // Validation
+  if (!username.value || !email.value || !password.value || !confirmPassword.value) {
+    error.value = 'All fields are required'
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match'
+    return
+  }
+
+  if (password.value.length < 6) {
+    error.value = 'Password must be at least 6 characters'
+    return
+  }
+
+  // Email validation (basic)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value)) {
+    error.value = 'Invalid email format'
     return
   }
 
   loading.value = true
   error.value = ''
+  success.value = ''
 
   try {
-    await authService.login({
+    console.log('🚀 Register attempt:', { username: username.value, email: email.value })
+    
+    await authService.register({
       username: username.value,
+      email: email.value,
       password: password.value,
     })
-    router.push('/dashboard')
-  } catch (err: any) {
-    console.error('❌ Login error:', err)
+
+    console.log('✅ Registration success')
+    success.value = 'Registration successful! Redirecting to login...'
     
-    // Better error messages
+    // Redirect to login after 2 seconds
+    setTimeout(() => {
+      router.push('/login')
+    }, 2000)
+
+  } catch (err: any) {
+    console.error('❌ Registration error:', err)
+    
     if (!err.response) {
       error.value = 'Network error - Cannot reach server'
-    } else if (err.response.status === 401) {
-      error.value = 'Invalid username or password'
     } else if (err.response.status === 400) {
-      error.value = err.response?.data?.message || 'Invalid request'
+      error.value = err.response?.data?.message || err.response?.data || 'Invalid registration data'
+    } else if (err.response.status === 409) {
+      error.value = 'Username or email already exists'
     } else {
-      error.value = err.response?.data?.message || 'Login failed. Please try again.'
+      error.value = err.response?.data?.message || 'Registration failed. Please try again.'
     }
   } finally {
     loading.value = false
   }
 }
 
-// Clear error when user starts typing
-function clearError() {
-  if (error.value) {
+// Clear messages when user starts typing
+function clearMessages() {
+  if (error.value || success.value) {
     error.value = ''
+    success.value = ''
   }
 }
 </script>
@@ -56,10 +89,23 @@ function clearError() {
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-fade-in">
       <!-- Header -->
       <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
-        Login
+        Create Account
       </h1>
 
-      <!-- Error Alert (shows at top) -->
+      <!-- Success Alert -->
+      <div 
+        v-if="success" 
+        class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg"
+      >
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-green-700 text-sm font-medium">{{ success }}</p>
+        </div>
+      </div>
+
+      <!-- Error Alert -->
       <div 
         v-if="error" 
         class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg animate-shake"
@@ -73,7 +119,7 @@ function clearError() {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleLogin" class="space-y-6">
+      <form @submit.prevent="handleRegister" class="space-y-5">
         <!-- Username -->
         <div>
           <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
@@ -82,9 +128,25 @@ function clearError() {
           <input
             id="username"
             v-model="username"
-            @input="clearError"
+            @input="clearMessages"
             type="text"
-            placeholder="Enter username"
+            placeholder="Choose a username"
+            required
+            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+          />
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+            Email
+          </label>
+          <input
+            id="email"
+            v-model="email"
+            @input="clearMessages"
+            type="email"
+            placeholder="Enter your email"
             required
             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
           />
@@ -98,9 +160,25 @@ function clearError() {
           <input
             id="password"
             v-model="password"
-            @input="clearError"
+            @input="clearMessages"
             type="password"
-            placeholder="Enter password"
+            placeholder="Create a password (min 6 chars)"
+            required
+            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+          />
+        </div>
+
+        <!-- Confirm Password -->
+        <div>
+          <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            v-model="confirmPassword"
+            @input="clearMessages"
+            type="password"
+            placeholder="Re-enter your password"
             required
             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
           />
@@ -109,7 +187,7 @@ function clearError() {
         <!-- Submit Button -->
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="loading || !!success"
           class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transform hover:-translate-y-0.5 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span v-if="loading" class="flex items-center justify-center">
@@ -117,20 +195,21 @@ function clearError() {
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Logging in...
+            Creating account...
           </span>
-          <span v-else>Login</span>
+          <span v-else-if="success">✓ Success!</span>
+          <span v-else>Create Account</span>
         </button>
       </form>
 
-      <!-- Register Link -->
+      <!-- Login Link -->
       <p class="text-center text-gray-600 mt-6">
-        Don't have an account?
+        Already have an account?
         <router-link 
-          to="/register" 
+          to="/login" 
           class="text-purple-600 font-semibold hover:text-purple-700 hover:underline transition duration-200"
         >
-          Register here
+          Login here
         </router-link>
       </p>
     </div>

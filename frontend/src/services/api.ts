@@ -86,8 +86,8 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      authService.logout()  // <- dabar veiks, nes authService jau deklaruotas
+    if (error.response?.status === 401 && !error.config?.url?.includes('/Users/login')) {
+      authService.logout()
       window.location.href = '/login'
     }
     return Promise.reject(error)
