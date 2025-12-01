@@ -5,7 +5,8 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import AdminUsersView from '@/views/AdminUsersView.vue'
-import TasksView from '@/views/TasksView.vue' // ← PRIDĖK
+import TasksView from '@/views/TasksView.vue'
+import TaskDetailView from '@/views/TaskDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,9 +38,15 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
-      path: '/tasks', // ← PRIDĖK ROUTE
+      path: '/tasks',
       name: 'tasks',
       component: TasksView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/tasks/:id',
+      name: 'task-detail',
+      component: TaskDetailView,
       meta: { requiresAuth: true },
     },
   ],

@@ -1,14 +1,20 @@
-using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
+
+namespace Errando.Data;
 
 public class TaskItem
 {
     public int Id { get; set; }
-    public string Description { get; set; } = null!;
+
+    [Required]
+    [StringLength(500)]
+    public string Description { get; set; } = string.Empty;
+
     public bool IsCompleted { get; set; } = false;
 
+    [Required]
     public int TaskId { get; set; }
-    [JsonIgnore]
-    public Task Task { get; set; } = null!;
 
-    public List<StatusLog> StatusLogs { get; set; } = new();
+    // Navigation property
+    public TodoTask? Task { get; set; } // ← CHANGED to TodoTask
 }

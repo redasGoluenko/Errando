@@ -10,13 +10,19 @@ namespace Errando.Data
         }
 
         public DbSet<User> Users { get; set; } = null!;
-        public DbSet<Task> Tasks { get; set; } = null!;
+        public DbSet<TodoTask> Tasks { get; set; } = null!;
         public DbSet<TaskItem> TaskItems { get; set; } = null!;
         public DbSet<StatusLog> StatusLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<TodoTask>()
+                .HasOne(t => t.Client)
+                .WithMany()
+                .HasForeignKey(t => t.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TaskItem>()
                 .HasOne(ti => ti.Task)
@@ -26,16 +32,10 @@ namespace Errando.Data
 
             modelBuilder.Entity<StatusLog>()
                 .HasOne(sl => sl.TaskItem)
-                .WithMany(ti => ti.StatusLogs)
+                .WithMany()
                 .HasForeignKey(sl => sl.TaskItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Task>()
-                .HasOne(t => t.Client)
-                .WithMany()
-                .HasForeignKey(t => t.ClientId)
-                .OnDelete(DeleteBehavior.Restrict);
-     
             modelBuilder.Entity<StatusLog>()
                 .HasOne(sl => sl.Runner)
                 .WithMany()

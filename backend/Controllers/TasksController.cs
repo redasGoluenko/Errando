@@ -1,12 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 
+namespace backend.Controllers;
+
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class TasksController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -17,110 +18,95 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Task>>> GetTasks()
+    public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks() // ← CHANGED
     {
-        // Admin sees all
-        if (User.IsInRole("Admin"))
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        IQueryable<TodoTask> query = _context.Tasks;
+
+        if (userRole == "Client")
         {
-            return await _context.Tasks
-                .Include(t => t.Client)
-                .ToListAsync();
+            query = query.Where(t => t.ClientId == userId);
         }
 
-        // Clients see only their tasks
-        if (User.IsInRole("Client"))
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(claim, out var currentUserId))
-                return Forbid();
-
-            return await _context.Tasks
-                .Where(t => t.ClientId == currentUserId)
-                .Include(t => t.Client)
-                .ToListAsync();
-        }
-
-        // Runners / others: default to forbidden for task listing
-        return Forbid();
+        return await query.OrderByDescending(t => t.ScheduledTime).ToListAsync();
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Task>> GetTask(int id)
+    public async Task<ActionResult<TodoTask>> GetTask(int id) // ← CHANGED
     {
-        var task = await _context.Tasks
-            .Include(t => t.Client)
-            .FirstOrDefaultAsync(t => t.Id == id);
-        if (task == null) return NotFound();
+        var task = await _context.Tasks.FindAsync(id);
 
-        if (User.IsInRole("Admin")) return task;
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found" });
+        }
 
-        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(claim, out var currentUserId)) return Forbid();
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-        if (User.IsInRole("Client") && task.ClientId == currentUserId) return task;
+        if (userRole == "Client" && task.ClientId != userId)
+        {
+            return Forbid();
+        }
 
-        return Forbid();
+        return task;
     }
 
     [HttpPost]
-    [Authorize(Policy = "ClientOrAdmin")]
-    public async Task<ActionResult<Task>> CreateTask(CreateTaskDto taskDto)
+    public async Task<ActionResult<TodoTask>> CreateTask([FromBody] TodoTask task) // ← CHANGED
     {
-        var client = await _context.Users.FindAsync(taskDto.ClientId);
-        if (client == null) return BadRequest("Client not found");
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-        // if not Admin, ensure current user is the client
-        if (!User.IsInRole("Admin"))
+        if (userRole == "Client")
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (currentUserId == null || currentUserId != taskDto.ClientId.ToString())
-                return Forbid();
+            task.ClientId = userId;
         }
 
-        var task = new Task
+        var clientExists = await _context.Users.AnyAsync(u => u.Id == task.ClientId);
+        if (!clientExists)
         {
-            Title = taskDto.Title,
-            Description = taskDto.Description,
-            ScheduledTime = taskDto.ScheduledTime,
-            ClientId = taskDto.ClientId
-        };
+            return BadRequest(new { message = "Invalid ClientId. User does not exist." });
+        }
 
         _context.Tasks.Add(task);
         await _context.SaveChangesAsync();
 
-        var createdTask = await _context.Tasks
-            .Include(t => t.Client)
-            .FirstOrDefaultAsync(t => t.Id == task.Id);
-
-        return CreatedAtAction(nameof(GetTask), new { id = task.Id }, createdTask);
+        return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> UpdateTask(int id, UpdateTaskDto taskDto)
+    public async Task<ActionResult<TodoTask>> UpdateTask(int id, [FromBody] TodoTask task) // ← CHANGED
     {
-        if (id != taskDto.Id) return BadRequest();
-
-        var task = await _context.Tasks.FindAsync(id);
-        if (task == null) return NotFound();
-
-        // only Admin or task owner (client) can update
-        if (!User.IsInRole("Admin"))
+        if (id != task.Id)
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (currentUserId == null || currentUserId != task.ClientId.ToString())
-                return Forbid();
+            return BadRequest(new { message = "ID mismatch" });
         }
 
-        if (taskDto.ClientId != task.ClientId)
+        var existingTask = await _context.Tasks.FindAsync(id);
+        if (existingTask == null)
         {
-            var client = await _context.Users.FindAsync(taskDto.ClientId);
-            if (client == null) return BadRequest("Client not found");
+            return NotFound(new { message = "Task not found" });
         }
 
-        task.Title = taskDto.Title;
-        task.Description = taskDto.Description;
-        task.ScheduledTime = taskDto.ScheduledTime;
-        task.ClientId = taskDto.ClientId;
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        if (userRole == "Client" && existingTask.ClientId != userId)
+        {
+            return Forbid();
+        }
+
+        existingTask.Title = task.Title;
+        existingTask.Description = task.Description;
+        existingTask.ScheduledTime = task.ScheduledTime;
+
+        if (userRole == "Admin")
+        {
+            existingTask.ClientId = task.ClientId;
+        }
 
         try
         {
@@ -129,135 +115,36 @@ public class TasksController : ControllerBase
         catch (DbUpdateConcurrencyException)
         {
             if (!TaskExists(id))
+            {
                 return NotFound();
+            }
             throw;
         }
 
-        return NoContent();
+        return existingTask;
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {
         var task = await _context.Tasks.FindAsync(id);
-        if (task == null) return NotFound();
-
-        // only Admin or task owner (client) can delete
-        if (!User.IsInRole("Admin"))
+        if (task == null)
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (currentUserId == null || currentUserId != task.ClientId.ToString())
-                return Forbid();
+            return NotFound(new { message = "Task not found" });
+        }
+
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        if (userRole == "Client" && task.ClientId != userId)
+        {
+            return Forbid();
         }
 
         _context.Tasks.Remove(task);
         await _context.SaveChangesAsync();
+
         return NoContent();
-    }
-
-    [HttpGet("by-client/{clientId}")]
-    public async Task<ActionResult<IEnumerable<Task>>> GetTasksByClient(int clientId)
-    {
-        var tasks = await _context.Tasks
-            .Where(t => t.ClientId == clientId)
-            .Include(t => t.Client)
-            .Include(t => t.TaskItems)
-            .ToListAsync();
-            
-        return tasks;
-    }
-
-    [HttpGet("{taskId}/taskitems")]
-    public async Task<ActionResult<IEnumerable<TaskItem>>> GetTaskItemsByIds(
-        int taskId, 
-        [FromQuery] int[] taskItemIds)
-    {
-        var task = await _context.Tasks.FindAsync(taskId);
-        if (task == null) return NotFound("Task not found");
-
-        IQueryable<TaskItem> query = _context.TaskItems
-            .Where(ti => ti.TaskId == taskId);
-
-        if (taskItemIds != null && taskItemIds.Length > 0)
-        {
-            var existingIds = await _context.TaskItems
-                .Where(ti => ti.TaskId == taskId && taskItemIds.Contains(ti.Id))
-                .Select(ti => ti.Id)
-                .ToListAsync();
-
-            var missingIds = taskItemIds.Except(existingIds).ToArray();
-            if (missingIds.Length > 0)
-            {
-                return NotFound($"TaskItem(s) not found: {string.Join(", ", missingIds)}");
-            }
-
-            query = query.Where(ti => taskItemIds.Contains(ti.Id));
-        }
-
-        var taskItems = await query
-            .Include(ti => ti.StatusLogs)
-            .ThenInclude(sl => sl.Runner)
-            .ToListAsync();
-
-        return taskItems;
-    }
-
-    [HttpGet("{taskId}/taskitems/{taskItemId}")]
-    public async Task<ActionResult<TaskItem>> GetTaskItem(int taskId, int taskItemId)
-    {
-        var task = await _context.Tasks.FindAsync(taskId);
-        if (task == null) return NotFound("Task not found");
-
-        var taskItem = await _context.TaskItems
-            .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
-            .Include(ti => ti.StatusLogs)
-            .ThenInclude(sl => sl.Runner)
-            .FirstOrDefaultAsync();
-
-        if (taskItem == null) return NotFound("TaskItem not found");
-        return taskItem;
-    }
-
-    [HttpGet("{taskId}/taskitems/{taskItemId}/statuslogs")]
-    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogsForTaskItem(
-        int taskId, 
-        int taskItemId,
-        [FromQuery] int[] statusLogIds)
-    {
-        var task = await _context.Tasks.FindAsync(taskId);
-        if (task == null) return NotFound("Task not found");
-
-        var taskItem = await _context.TaskItems
-            .Where(ti => ti.TaskId == taskId && ti.Id == taskItemId)
-            .FirstOrDefaultAsync();
-        if (taskItem == null) return NotFound("TaskItem not found or does not belong to specified task");
-
-        IQueryable<StatusLog> query = _context.StatusLogs
-            .Where(sl => sl.TaskItemId == taskItemId);
-
-        if (statusLogIds != null && statusLogIds.Length > 0)
-        {
-            var existingIds = await _context.StatusLogs
-                .Where(sl => sl.TaskItemId == taskItemId && statusLogIds.Contains(sl.Id))
-                .Select(sl => sl.Id)
-                .ToListAsync();
-
-            var missingIds = statusLogIds.Except(existingIds).ToArray();
-            if (missingIds.Length > 0)
-            {
-                return NotFound($"StatusLog(s) not found: {string.Join(", ", missingIds)}");
-            }
-
-            query = query.Where(sl => statusLogIds.Contains(sl.Id));
-        }
-
-        var statusLogs = await query
-            .Include(sl => sl.Runner)
-            .Include(sl => sl.TaskItem)
-            .OrderByDescending(sl => sl.CreatedAt)
-            .ToListAsync();
-
-        return statusLogs;
     }
 
     private bool TaskExists(int id)
