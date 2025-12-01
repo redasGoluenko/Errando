@@ -16,7 +16,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000") // pakeisk į frontend URL vėliau
+            .WithOrigins(
+                "http://localhost:5173",  // Vite dev server
+                "http://localhost:3000"  // jei naudoji kitą portą
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
