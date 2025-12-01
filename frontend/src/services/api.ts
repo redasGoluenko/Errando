@@ -1,17 +1,16 @@
-import axios, { type AxiosInstance } from 'axios'
+import axios from 'axios'
 
 // Azure backend URL arba local
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5064/api'
 
 // Axios instance
-const apiClient: AxiosInstance = axios.create({
+const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// ==================== AUTH TYPES ====================
 export interface LoginRequest {
   username: string
   password: string
@@ -30,11 +29,10 @@ export interface AuthResponse {
   role: string
 }
 
-// ==================== AUTH SERVICE ====================
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/Users/login', data)
-    // Išsaugok token ir role į localStorage
+    // Save to localStorage
     localStorage.setItem('token', response.data.token)
     localStorage.setItem('userId', response.data.userId.toString())
     localStorage.setItem('username', response.data.username)
@@ -54,12 +52,8 @@ export const authService = {
     localStorage.removeItem('role')
   },
 
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('token')
-  },
-
-  getRole(): string | null {
-    return localStorage.getItem('role')
+  getToken(): string | null {
+    return localStorage.getItem('token')
   },
 
   getUserId(): number | null {
@@ -67,13 +61,20 @@ export const authService = {
     return id ? parseInt(id) : null
   },
 
+  getRole(): string | null {
+    return localStorage.getItem('role')
+  },
+
   getUsername(): string | null {
     return localStorage.getItem('username')
   },
+
+  isAuthenticated(): boolean {
+    return !!this.getToken()
+  },
 }
 
-// ==================== INTERCEPTORS ====================
-// Interceptor: prideda JWT token prie kiekvieno request
+// Add JWT token to every request
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -81,17 +82,5 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
-
-// Interceptor: jei 401, logout ir redirect
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && !error.config?.url?.includes('/Users/login')) {
-      authService.logout()
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  },
-)
 
 export default apiClient

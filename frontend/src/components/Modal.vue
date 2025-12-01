@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-
 interface Props {
   show: boolean
-  title: string
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
@@ -14,91 +11,78 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   close: []
 }>()
-
-// Close on Escape key
-function handleEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.show) {
-    emit('close')
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', handleEscape)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleEscape)
-})
-
-const maxWidthClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-}
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="show"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
-        @click.self="emit('close')"
-      >
-        <div
-          :class="[
-            'bg-white rounded-2xl shadow-2xl w-full transform transition-all',
-            maxWidthClasses[maxWidth],
-          ]"
-          @click.stop
+  <Transition
+    enter-active-class="transition ease-out duration-300"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition ease-in duration-200"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div
+      v-if="show"
+      class="fixed inset-0 z-50 overflow-y-auto"
+      @click.self="emit('close')"
+    >
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black bg-opacity-50" @click="emit('close')"></div>
+
+      <!-- Modal -->
+      <div class="flex min-h-screen items-center justify-center p-4">
+        <Transition
+          enter-active-class="transition ease-out duration-300"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition ease-in duration-200"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
         >
-          <!-- Header -->
-          <div class="flex items-center justify-between p-6 border-b">
-            <h2 class="text-xl font-bold text-gray-800">{{ title }}</h2>
-            <button
-              @click="emit('close')"
-              class="text-gray-400 hover:text-gray-600 transition duration-200"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <div
+            v-if="show"
+            :class="[
+              'relative bg-white rounded-lg shadow-xl w-full',
+              {
+                'max-w-sm': maxWidth === 'sm',
+                'max-w-md': maxWidth === 'md',
+                'max-w-lg': maxWidth === 'lg',
+                'max-w-xl': maxWidth === 'xl',
+              },
+            ]"
+            @click.stop
+          >
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+              <div class="flex items-center justify-between">
+                <slot name="header">
+                  <!-- Default header if no slot provided -->
+                  <h3 class="text-xl font-semibold text-gray-900">Modal</h3>
+                </slot>
+                <button
+                  @click="emit('close')"
+                  class="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-          <!-- Content (slot) -->
-          <div class="p-6">
-            <slot />
+            <!-- Body -->
+            <div class="px-6 py-4">
+              <slot name="body"></slot>
+            </div>
           </div>
-
-          <!-- Footer (optional slot) -->
-          <div v-if="$slots.footer" class="p-6 border-t bg-gray-50 rounded-b-2xl">
-            <slot name="footer" />
-          </div>
-        </div>
+        </Transition>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </Transition>
 </template>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-enter-active .bg-white,
-.modal-leave-active .bg-white {
-  transition: transform 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-from .bg-white,
-.modal-leave-to .bg-white {
-  transform: scale(0.9);
-}
-</style>
