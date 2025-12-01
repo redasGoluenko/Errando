@@ -300,47 +300,68 @@ function getRoleBadgeClass(role: string) {
     </main>
 
     <!-- Create User Modal -->
-    <Modal :show="showCreateModal" title="Create New User" @close="closeModals">
-      <UserForm mode="create" @submit="handleCreateUser" @cancel="closeModals" />
+    <Modal :show="showCreateModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Create New User</h3>
+      </template>
+      <template #body>
+        <UserForm mode="create" @submit="handleCreateUser" @cancel="closeModals" />
+      </template>
     </Modal>
 
     <!-- Edit User Modal -->
-    <Modal :show="showEditModal" title="Edit User" @close="closeModals">
-      <UserForm mode="edit" :user="selectedUser || undefined" @submit="handleUpdateUser" @cancel="closeModals" />
+    <Modal :show="showEditModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Edit User</h3>
+      </template>
+      <template #body>
+        <UserForm 
+          v-if="selectedUser" 
+          mode="edit" 
+          :user="selectedUser" 
+          @submit="handleUpdateUser" 
+          @cancel="closeModals" 
+        />
+      </template>
     </Modal>
 
     <!-- Delete Confirmation Modal -->
-    <Modal :show="showDeleteModal" title="Delete User" max-width="sm" @close="closeModals">
-      <div class="text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
+    <Modal :show="showDeleteModal" max-width="sm" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Delete User</h3>
+      </template>
+      <template #body>
+        <div class="text-center">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Are you sure?</h3>
+          <p class="text-sm text-gray-600 mb-6">
+            Do you really want to delete user <strong>{{ selectedUser?.username }}</strong>? This action cannot be undone.
+          </p>
+          <div class="flex gap-3">
+            <button
+              @click="closeModals"
+              class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleDeleteUser"
+              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200"
+            >
+              Delete
+            </button>
+          </div>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Are you sure?</h3>
-        <p class="text-sm text-gray-600 mb-6">
-          Do you really want to delete user <strong>{{ selectedUser?.username }}</strong>? This action cannot be undone.
-        </p>
-        <div class="flex gap-3">
-          <button
-            @click="closeModals"
-            class="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleDeleteUser"
-            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
+      </template>
     </Modal>
   </div>
 </template>
