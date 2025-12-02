@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { tasksService, type Task } from '@/services/tasksService'
 import { taskItemsService, type TaskItem, type CreateTaskItemRequest, type UpdateTaskItemRequest } from '@/services/taskItemsService'
-import { statusLogsService, type StatusLog, type CreateStatusLogRequest } from '@/services/statusLogsService'
+import { statusLogsService, type StatusLog, type CreateStatusLogRequest, type UpdateStatusLogRequest } from '@/services/statusLogsService'
 import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskItemForm from '@/components/TaskItemForm.vue'
@@ -30,12 +30,15 @@ const showStatusModal = ref(false)
 const showEditItemModal = ref(false)
 const showDeleteItemModal = ref(false)
 const showDeleteLogModal = ref(false)
+const showEditLogModal = ref(false)
 
 const selectedTaskItem = ref<TaskItem | null>(null)
 const selectedStatusLog = ref<StatusLog | null>(null)
 const newStatus = ref('Pending')
 const newComment = ref('')
 const itemDescription = ref('')
+const editLogStatus = ref('')
+const editLogComment = ref('')
 const showToast = ref(false)
 const toastType = ref<'success' | 'error'>('success')
 const toastMessage = ref('')
@@ -268,6 +271,34 @@ async function handleDeleteLog() {
     showNotification(err.response?.data?.message || 'Failed to delete status log', 'error')
   }
 }
+
+function openEditLogModal(log: StatusLog) {
+  selectedStatusLog.value = log
+  editLogStatus.value = log.status
+  editLogComment.value = log.comment || ''
+  showEditLogModal.value = true
+}
+
+async function handleEditLog() {
+  if (!selectedStatusLog.value) return
+
+  try {
+    const request: UpdateStatusLogRequest = {
+      status: editLogStatus.value,
+      comment: editLogComment.value || undefined
+    }
+
+    await statusLogsService.updateStatusLog(selectedStatusLog.value.id, request)
+    showEditLogModal.value = false
+    
+    await loadStatusLogs(selectedStatusLog.value.taskItemId)
+    
+    showNotification('Status log updated successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to update status log:', err)
+    showNotification(err.response?.data?.message || 'Failed to update status log', 'error')
+  }
+}
 </script>
 
 <template>
@@ -493,17 +524,30 @@ async function handleDeleteLog() {
                       <p v-if="log.comment" class="text-gray-600">{{ log.comment }}</p>
                     </div>
                     
-                    <!-- ← DELETE BUTTON FOR STATUS LOG -->
-                    <button
-                      v-if="userRole === 'Runner' || userRole === 'Admin'"
-                      @click="openDeleteLogModal(log)"
-                      class="flex-shrink-0 p-1 text-red-600 hover:bg-red-50 rounded transition"
-                      title="Delete status log"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <!-- Edit and Delete Buttons -->
+                    <div v-if="userRole === 'Runner' || userRole === 'Admin'" class="flex gap-1">
+                      <!-- Edit Button -->
+                      <button
+                        @click="openEditLogModal(log)"
+                        class="flex-shrink-0 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                        title="Edit status log"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      
+                      <!-- Delete Button -->
+                      <button
+                        @click="openDeleteLogModal(log)"
+                        class="flex-shrink-0 p-1 text-red-600 hover:bg-red-50 rounded transition"
+                        title="Delete status log"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -692,6 +736,53 @@ async function handleDeleteLog() {
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
             >
               Delete
+            </button>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Edit Status Log Modal -->
+    <Modal :show="showEditLogModal" @close="showEditLogModal = false">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Edit Status Log</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              v-model="editLogStatus"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="Pending">Pending</option>
+              <option value="InProgress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Comment (Optional)</label>
+            <textarea
+              v-model="editLogComment"
+              rows="4"
+              placeholder="Add any notes about this status update..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+          </div>
+          
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              @click="showEditLogModal = false"
+              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleEditLog"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Save Changes
             </button>
           </div>
         </div>

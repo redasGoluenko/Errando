@@ -90,6 +90,52 @@ public class StatusLogsController : ControllerBase
         });
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Runner,Admin")]
+    public async Task<ActionResult<object>> UpdateStatusLog(int id, UpdateStatusLogDto dto)
+    {
+        var statusLog = await _context.StatusLogs
+            .Include(s => s.Runner)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        
+        if (statusLog == null)
+        {
+            return NotFound(new { message = "Status log not found" });
+        }
+
+        // Check permissions: only owner or admin can update
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userRole != "Admin" && statusLog.RunnerId != userId)
+        {
+            return Forbid(); // 403 Forbidden if not owner or admin
+        }
+
+        // Update fields
+        statusLog.Status = dto.Status;
+        statusLog.Comment = dto.Comment;
+        // Note: We keep the original Timestamp, don't update it
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            id = statusLog.Id,
+            taskItemId = statusLog.TaskItemId,
+            status = statusLog.Status,
+            comment = statusLog.Comment,
+            timestamp = statusLog.Timestamp,
+            runnerId = statusLog.RunnerId,
+            runner = statusLog.Runner != null ? new
+            {
+                id = statusLog.Runner.Id,
+                username = statusLog.Runner.Username,
+                role = statusLog.Runner.Role
+            } : null
+        });
+    }
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Runner,Admin")]
     public async Task<IActionResult> DeleteStatusLog(int id)
@@ -120,6 +166,12 @@ public class StatusLogsController : ControllerBase
 public class CreateStatusLogDto
 {
     public int TaskItemId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+}
+
+public class UpdateStatusLogDto
+{
     public string Status { get; set; } = string.Empty;
     public string? Comment { get; set; }
 }

@@ -20,6 +20,11 @@ export interface CreateStatusLogRequest {
   comment?: string
 }
 
+export interface UpdateStatusLogRequest {
+  status: string
+  comment?: string
+}
+
 export const statusLogsService = {
   async getStatusLogs(taskItemId: number): Promise<StatusLog[]> {
     console.log('📤 GET STATUS LOGS FOR TASK ITEM:', taskItemId)
@@ -32,6 +37,13 @@ export const statusLogsService = {
     console.log('📤 CREATE STATUS LOG:', data)
     const response = await apiClient.post<StatusLog>('/StatusLogs', data)
     console.log('✅ CREATE STATUS LOG SUCCESS:', response.data)
+    return response.data
+  },
+
+  async updateStatusLog(id: number, data: UpdateStatusLogRequest): Promise<StatusLog> {
+    console.log('📤 UPDATE STATUS LOG:', id, data)
+    const response = await apiClient.put<StatusLog>(`/StatusLogs/${id}`, data)
+    console.log('✅ UPDATE STATUS LOG SUCCESS:', response.data)
     return response.data
   },
 
