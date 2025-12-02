@@ -6,11 +6,12 @@ export interface TaskItem {
   status: string
   isCompleted: boolean
   taskId: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateTaskItemRequest {
   description: string
-  isCompleted: boolean
   taskId: number
 }
 
@@ -21,80 +22,47 @@ export interface UpdateTaskItemRequest {
 }
 
 export const taskItemsService = {
-  // Get all task items for a specific task
   async getTaskItemsByTaskId(taskId: number): Promise<TaskItem[]> {
     console.log('📤 GET TASK ITEMS FOR TASK:', taskId)
-    try {
-      const response = await apiClient.get<TaskItem[]>(`/TaskItems?taskId=${taskId}`)
-      console.log('✅ GET TASK ITEMS SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ GET TASK ITEMS ERROR:', error.response?.data)
-      throw error
-    }
+    const response = await apiClient.get<TaskItem[]>(`/TaskItems?taskId=${taskId}`)
+    console.log('✅ GET TASK ITEMS SUCCESS:', response.data)
+    return response.data
   },
 
-  // Get single task item by ID
-  async getTaskItemById(id: number): Promise<TaskItem> {
-    console.log('📤 GET TASK ITEM BY ID:', id)
-    try {
-      const response = await apiClient.get<TaskItem>(`/TaskItems/${id}`)
-      console.log('✅ GET TASK ITEM SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ GET TASK ITEM ERROR:', error.response?.data)
-      throw error
-    }
-  },
-
-  // Create new task item
   async createTaskItem(data: CreateTaskItemRequest): Promise<TaskItem> {
-    console.log('📤 CREATE TASK ITEM REQUEST:', data)
-    try {
-      const response = await apiClient.post<TaskItem>('/TaskItems', data)
-      console.log('✅ CREATE TASK ITEM SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ CREATE TASK ITEM ERROR:', error.response?.data)
-      throw error
-    }
+    console.log('📤 CREATE TASK ITEM:', data)
+    const response = await apiClient.post<TaskItem>('/TaskItems', data)
+    console.log('✅ CREATE TASK ITEM SUCCESS:', response.data)
+    return response.data
   },
 
-  // Update task item
   async updateTaskItem(id: number, data: UpdateTaskItemRequest): Promise<TaskItem> {
     console.log('📤 UPDATE TASK ITEM REQUEST:', id, data)
-    try {
-      const response = await apiClient.put<TaskItem>(`/TaskItems/${id}`, data)
-      console.log('✅ UPDATE TASK ITEM SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ UPDATE TASK ITEM ERROR:', error.response?.data)
-      throw error
+
+    // Backend expects full TaskItem object with Id
+    const fullItem = {
+      id: id,
+      description: data.description,
+      isCompleted: data.isCompleted,
+      taskId: data.taskId,
+      status: 'Pending', // Default status
     }
+
+    const response = await apiClient.patch<TaskItem>(`/TaskItems/${id}`, fullItem)
+    console.log('✅ UPDATE TASK ITEM SUCCESS:', response.data)
+    return response.data
   },
 
-  // Delete task item
   async deleteTaskItem(id: number): Promise<void> {
-    console.log('📤 DELETE TASK ITEM REQUEST:', id)
-    try {
-      await apiClient.delete(`/TaskItems/${id}`)
-      console.log('✅ DELETE TASK ITEM SUCCESS:', id)
-    } catch (error: any) {
-      console.error('❌ DELETE TASK ITEM ERROR:', error.response?.data)
-      throw error
-    }
+    console.log('📤 DELETE TASK ITEM:', id)
+    await apiClient.delete(`/TaskItems/${id}`)
+    console.log('✅ DELETE TASK ITEM SUCCESS')
   },
 
-  // Toggle completion status
-  async toggleComplete(id: number, isCompleted: boolean): Promise<TaskItem> {
+  async toggleComplete(id: number, isCompleted: boolean): Promise<void> {
     console.log('📤 TOGGLE TASK ITEM COMPLETE:', id, isCompleted)
-    try {
-      const response = await apiClient.patch<TaskItem>(`/TaskItems/${id}/toggle`, { isCompleted })
-      console.log('✅ TOGGLE TASK ITEM SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ TOGGLE TASK ITEM ERROR:', error.response?.data)
-      throw error
-    }
+    const endpoint = isCompleted ? `/TaskItems/${id}/complete` : `/TaskItems/${id}/incomplete`
+    await apiClient.patch(endpoint)
+    console.log('✅ TOGGLE COMPLETE SUCCESS')
   },
 }

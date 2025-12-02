@@ -1,33 +1,44 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Errando.Data;
-
-public class TodoTask
+namespace Errando.Data
 {
-    public int Id { get; set; }
+    public class TodoTask
+    {
+        public int Id { get; set; }
 
-    [Required]
-    [StringLength(200)]
-    public string Title { get; set; } = string.Empty;
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
 
-    [StringLength(1000)]
-    public string Description { get; set; } = string.Empty;
+        [MaxLength(1000)]
+        public string Description { get; set; } = string.Empty;
 
-    [Required]
-    public DateTime ScheduledTime { get; set; }
+        [Required]
+        public DateTime ScheduledTime { get; set; }
 
-    public List<TaskItem> TaskItems { get; set; } = new();
+        [Required]
+        [MaxLength(50)]
+        public string Status { get; set; } = "Pending";
 
-    [Required]
-    public int ClientId { get; set; }
+        [Required]
+        public int ClientId { get; set; }
 
-    [JsonIgnore]
-    public User? Client { get; set; }
+        [ForeignKey("ClientId")]
+        public User? Client { get; set; }
 
-    // NEW: Runner assignment
-    public int? RunnerId { get; set; } // ← PRIDĖJOME
+        public int? RunnerId { get; set; }
 
-    [JsonIgnore]
-    public User? Runner { get; set; } // ← PRIDĖJOME
+        [ForeignKey("RunnerId")]
+        public User? Runner { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation property for related task items
+        public ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
+    }
 }

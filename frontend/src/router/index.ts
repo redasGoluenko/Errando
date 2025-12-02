@@ -1,72 +1,91 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authService } from '@/services/api'
 
-import LoginView from '@/views/LoginView.vue'
-import RegisterView from '@/views/RegisterView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import AdminUsersView from '@/views/AdminUsersView.vue'
-import TasksView from '@/views/TasksView.vue'
-import TaskDetailView from '@/views/TaskDetailView.vue'
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      redirect: () => {
+        // Redirect based on authentication status
+        return authService.isAuthenticated() ? '/dashboard' : '/login'
+      }
     },
     {
       path: '/login',
-      name: 'login',
-      component: LoginView,
+      name: 'Login',
+      component: () => import('../views/LoginView.vue'),
+      beforeEnter: (to, from, next) => {
+        if (authService.isAuthenticated()) {
+          next('/dashboard')
+        } else {
+          next()
+        }
+      }
     },
     {
       path: '/register',
-      name: 'register',
-      component: RegisterView,
+      name: 'Register',
+      component: () => import('../views/RegisterView.vue'),
+      beforeEnter: (to, from, next) => {
+        if (authService.isAuthenticated()) {
+          next('/dashboard')
+        } else {
+          next()
+        }
+      }
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
-      component: DashboardView,
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/admin/users',
-      name: 'admin-users',
-      component: AdminUsersView,
-      meta: { requiresAuth: true, requiresAdmin: true },
+      name: 'Dashboard',
+      component: () => import('../views/DashboardView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/tasks',
-      name: 'tasks',
-      component: TasksView,
-      meta: { requiresAuth: true },
+      name: 'Tasks',
+      component: () => import('../views/TasksView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/tasks/:id',
-      name: 'task-detail',
-      component: TaskDetailView,
-      meta: { requiresAuth: true },
+      name: 'TaskDetail',
+      component: () => import('../views/TaskDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/users',
+      name: 'AdminUsers',
+      component: () => import('../views/AdminUsersView.vue'),
+      meta: { requiresAuth: true, role: 'Admin' }
+    },
+    {
+      path: '/runner',
+      redirect: '/runner/tasks'
     },
     {
       path: '/runner/tasks',
       name: 'RunnerTasks',
       component: () => import('../views/RunnerTasksView.vue'),
-      meta: { requiresAuth: true, role: 'Runner' },
-    },
-  ],
+      meta: { requiresAuth: true, role: 'Runner' }
+    }
+  ]
 })
 
-// Navigation guard
+// Global navigation guard
 router.beforeEach((to, from, next) => {
-  const token = authService.getToken()
-  const role = authService.getRole()
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const isAuthenticated = authService.isAuthenticated()
 
-  if (to.meta.requiresAuth && !token) {
+  if (requiresAuth && !isAuthenticated) {
     next('/login')
-  } else if (to.meta.requiresAdmin && role !== 'Admin') {
-    next('/dashboard')
+  } else if (to.meta.role) {
+    const userRole = authService.getRole()
+    if (userRole !== to.meta.role && userRole !== 'Admin') {
+      next('/dashboard')
+    } else {
+      next()
+    }
   } else {
     next()
   }

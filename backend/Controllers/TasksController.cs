@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using System.Security.Claims;  // ← ADD THIS LINE
 
 namespace backend.Controllers;
 
@@ -18,43 +19,73 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TodoTask>>> GetTasks()
+    public async Task<ActionResult<IEnumerable<object>>> GetTasks()
     {
-        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
-        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
         IQueryable<TodoTask> query = _context.Tasks
-            .Include(t => t.Runner); // ← ADD THIS
+            .Include(t => t.Client)
+            .Include(t => t.Runner);
 
+        // Filter based on role
         if (userRole == "Client")
         {
+            // Clients see only their own tasks
             query = query.Where(t => t.ClientId == userId);
         }
+        else if (userRole == "Runner")
+        {
+            // Runners see unassigned tasks + their assigned tasks
+            query = query.Where(t => t.RunnerId == null || t.RunnerId == userId);
+        }
+        // Admin sees all tasks (no filter)
 
-        return await query.OrderByDescending(t => t.ScheduledTime).ToListAsync();
+        var tasks = await query.ToListAsync();
+
+        return Ok(tasks.Select(t => new
+        {
+            id = t.Id,
+            title = t.Title,
+            description = t.Description,
+            scheduledTime = t.ScheduledTime,
+            status = t.Status,
+            clientId = t.ClientId,
+            clientUsername = t.Client?.Username,
+            runnerId = t.RunnerId,
+            runnerUsername = t.Runner?.Username,
+            createdAt = t.CreatedAt,
+            updatedAt = t.UpdatedAt
+        }));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TodoTask>> GetTask(int id)
+    public async Task<ActionResult<object>> GetTask(int id)
     {
         var task = await _context.Tasks
-            .Include(t => t.Runner) // ← ADD THIS
+            .Include(t => t.Client)
+            .Include(t => t.Runner)  // ← Make sure this is here
             .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null)
         {
-            return NotFound(new { message = "Task not found" });
+            return NotFound();
         }
 
-        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
-        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
-        if (userRole == "Client" && task.ClientId != userId)
+        return Ok(new
         {
-            return Forbid();
-        }
-
-        return task;
+            id = task.Id,
+            title = task.Title,
+            description = task.Description,
+            scheduledTime = task.ScheduledTime,
+            status = task.Status,
+            clientId = task.ClientId,
+            clientUsername = task.Client?.Username,
+            runnerId = task.RunnerId,
+            runnerUsername = task.Runner?.Username,  // ← ADD THIS
+            createdAt = task.CreatedAt,
+            updatedAt = task.UpdatedAt
+        });
     }
 
     [HttpPost]

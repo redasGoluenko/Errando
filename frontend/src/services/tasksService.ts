@@ -5,14 +5,19 @@ export interface Task {
   title: string
   description: string
   scheduledTime: string
-  taskItems: any[]
+  status: string  // ← ADD THIS
   clientId: number
+  clientUsername?: string
   runnerId?: number | null
+  runnerUsername?: string | null  // ← ADD THIS
   runner?: {
     id: number
     username: string
     role: string
   } | null
+  taskItems?: any[]
+  createdAt: string  // ← ADD THIS
+  updatedAt: string  // ← ADD THIS
 }
 
 export interface CreateTaskRequest {
