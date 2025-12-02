@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class StatusLogsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -17,74 +18,106 @@ public class StatusLogsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/StatusLogs?taskItemId={id}
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<StatusLog>>> GetStatusLogs([FromQuery] int taskItemId)
+    public async Task<ActionResult<IEnumerable<object>>> GetStatusLogs([FromQuery] int? taskItemId = null)
     {
-        Console.WriteLine($"🔍 GET STATUS LOGS FOR TASK ITEM: {taskItemId}");
-        
-        var logs = await _context.StatusLogs
-            .Include(sl => sl.Runner)
-            .Where(sl => sl.TaskItemId == taskItemId)
-            .OrderByDescending(sl => sl.Timestamp)
+        var query = _context.StatusLogs
+            .Include(s => s.Runner)
+            .AsQueryable();
+
+        if (taskItemId.HasValue)
+        {
+            query = query.Where(s => s.TaskItemId == taskItemId.Value);
+        }
+
+        var logs = await query
+            .OrderByDescending(s => s.Timestamp)
             .ToListAsync();
 
-        Console.WriteLine($"✅ FOUND {logs.Count} STATUS LOGS");
-        return logs;
+        return Ok(logs.Select(s => new
+        {
+            id = s.Id,
+            taskItemId = s.TaskItemId,
+            status = s.Status,
+            comment = s.Comment,
+            timestamp = s.Timestamp,
+            runnerId = s.RunnerId,
+            runner = s.Runner != null ? new
+            {
+                id = s.Runner.Id,
+                username = s.Runner.Username,
+                role = s.Runner.Role
+            } : null
+        }));
     }
 
-    // POST: api/StatusLogs
     [HttpPost]
     [Authorize(Roles = "Runner,Admin")]
-    public async Task<ActionResult<StatusLog>> CreateStatusLog(CreateStatusLogRequest request)
+    public async Task<ActionResult<object>> CreateStatusLog(CreateStatusLogDto dto)
     {
-        Console.WriteLine($"📤 CREATE STATUS LOG: TaskItemId={request.TaskItemId}, Status={request.Status}");
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-        var taskItem = await _context.TaskItems
-            .Include(ti => ti.Task)
-            .FirstOrDefaultAsync(ti => ti.Id == request.TaskItemId);
-
-        if (taskItem == null)
-        {
-            return NotFound(new { message = "Task item not found" });
-        }
-
-        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
-        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-
-        // Check if runner is assigned to this task
-        if (userRole == "Runner" && taskItem.Task?.RunnerId != userId)
-        {
-            return Forbid();
-        }
-
-        // Update task item status
-        taskItem.Status = request.Status;
-
-        // Create status log
         var statusLog = new StatusLog
         {
-            TaskItemId = request.TaskItemId,
-            Status = request.Status,
-            Comment = request.Comment ?? string.Empty,
-            Timestamp = DateTime.UtcNow,
-            RunnerId = userId
+            TaskItemId = dto.TaskItemId,
+            Status = dto.Status,
+            Comment = dto.Comment,
+            RunnerId = userId,
+            Timestamp = DateTime.UtcNow
         };
 
         _context.StatusLogs.Add(statusLog);
         await _context.SaveChangesAsync();
 
-        // Reload with Runner data
-        var savedLog = await _context.StatusLogs
-            .Include(sl => sl.Runner)
-            .FirstOrDefaultAsync(sl => sl.Id == statusLog.Id);
+        var createdLog = await _context.StatusLogs
+            .Include(s => s.Runner)
+            .FirstOrDefaultAsync(s => s.Id == statusLog.Id);
 
-        Console.WriteLine($"✅ STATUS LOG CREATED: {savedLog?.Id}");
-        return CreatedAtAction(nameof(GetStatusLogs), new { taskItemId = request.TaskItemId }, savedLog);
+        return CreatedAtAction(nameof(GetStatusLogs), new { id = statusLog.Id }, new
+        {
+            id = createdLog!.Id,
+            taskItemId = createdLog.TaskItemId,
+            status = createdLog.Status,
+            comment = createdLog.Comment,
+            timestamp = createdLog.Timestamp,
+            runnerId = createdLog.RunnerId,
+            runner = createdLog.Runner != null ? new
+            {
+                id = createdLog.Runner.Id,
+                username = createdLog.Runner.Username,
+                role = createdLog.Runner.Role
+            } : null
+        });
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Runner,Admin")]
+    public async Task<IActionResult> DeleteStatusLog(int id)
+    {
+        var statusLog = await _context.StatusLogs.FindAsync(id);
+        
+        if (statusLog == null)
+        {
+            return NotFound(new { message = "Status log not found" });
+        }
+
+        // Optional: Only allow runner who created it or admin to delete
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userRole != "Admin" && statusLog.RunnerId != userId)
+        {
+            return Forbid(); // 403 Forbidden if not owner or admin
+        }
+
+        _context.StatusLogs.Remove(statusLog);
+        await _context.SaveChangesAsync();
+
+        return NoContent(); // 204 No Content
     }
 }
 
-public class CreateStatusLogRequest
+public class CreateStatusLogDto
 {
     public int TaskItemId { get; set; }
     public string Status { get; set; } = string.Empty;

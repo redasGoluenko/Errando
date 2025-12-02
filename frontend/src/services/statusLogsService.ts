@@ -1,4 +1,4 @@
-import apiClient from './api' // ← CHANGE FROM { apiClient }
+import apiClient from './api'
 
 export interface StatusLog {
   id: number
@@ -23,25 +23,21 @@ export interface CreateStatusLogRequest {
 export const statusLogsService = {
   async getStatusLogs(taskItemId: number): Promise<StatusLog[]> {
     console.log('📤 GET STATUS LOGS FOR TASK ITEM:', taskItemId)
-    try {
-      const response = await apiClient.get<StatusLog[]>(`/StatusLogs?taskItemId=${taskItemId}`)
-      console.log('✅ GET STATUS LOGS SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ GET STATUS LOGS ERROR:', error.response?.data)
-      throw error
-    }
+    const response = await apiClient.get<StatusLog[]>(`/StatusLogs?taskItemId=${taskItemId}`)
+    console.log('✅ GET STATUS LOGS SUCCESS:', response.data)
+    return response.data
   },
 
   async createStatusLog(data: CreateStatusLogRequest): Promise<StatusLog> {
-    console.log('📤 CREATE STATUS LOG REQUEST:', data)
-    try {
-      const response = await apiClient.post<StatusLog>('/StatusLogs', data)
-      console.log('✅ CREATE STATUS LOG SUCCESS:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ CREATE STATUS LOG ERROR:', error.response?.data)
-      throw error
-    }
+    console.log('📤 CREATE STATUS LOG:', data)
+    const response = await apiClient.post<StatusLog>('/StatusLogs', data)
+    console.log('✅ CREATE STATUS LOG SUCCESS:', response.data)
+    return response.data
+  },
+
+  async deleteStatusLog(id: number): Promise<void> {
+    console.log('📤 DELETE STATUS LOG:', id)
+    await apiClient.delete(`/StatusLogs/${id}`)
+    console.log('✅ DELETE STATUS LOG SUCCESS')
   },
 }
