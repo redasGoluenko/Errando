@@ -1,26 +1,15 @@
 <!-- filepath: frontend/src/views/DashboardView.vue -->
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <header class="bg-white shadow-md">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
-            <p class="text-sm text-gray-600 mt-1">Welcome, {{ username }}! ({{ role }})</p>
-          </div>
-          <button
-            @click="logout"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-200"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </header>
-
+  <div class="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+          Welcome back, {{ username }}! 👋
+        </h1>
+        <p class="text-gray-600">{{ getDashboardGreeting() }}</p>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        
         <!-- Admin: Manage Users -->
         <router-link
           v-if="role === 'Admin'"
@@ -81,20 +70,33 @@
             </div>
           </div>
         </router-link>
-
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/api'
 
 const router = useRouter()
 
-const username = authService.getUsername()
-const role = authService.getRole()
+const username = ref(authService.getUsername())
+const role = ref(authService.getRole())
+
+onMounted(() => {
+  username.value = authService.getUsername()
+  role.value = authService.getRole()
+  console.log('Dashboard user:', username.value, role.value)
+})
+
+function getDashboardGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning!'
+  if (hour < 18) return 'Good afternoon!'
+  return 'Good evening!'
+}
 
 function logout() {
   authService.logout()
