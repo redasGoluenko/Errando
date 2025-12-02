@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { TaskItem, CreateTaskItemRequest, UpdateTaskItemRequest } from '@/services/taskItemsService'
+import type { TaskItem } from '@/services/taskItemsService'
 
 interface Props {
-  taskItem?: TaskItem
   taskId: number
-  mode: 'create' | 'edit'
+  taskItem?: TaskItem
+  isEdit?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isEdit: false,
+})
 
 const emit = defineEmits<{
-  submit: [data: CreateTaskItemRequest | UpdateTaskItemRequest]
-  cancel: []
+  (e: 'submit', data: any): void
+  (e: 'cancel'): void
 }>()
 
 const description = ref('')
 const isCompleted = ref(false)
 const error = ref('')
 
-// Pre-fill form if editing
 watch(
   () => props.taskItem,
   (newItem) => {
@@ -31,83 +32,80 @@ watch(
   { immediate: true }
 )
 
-function handleSubmit() {
+function validate(): boolean {
   error.value = ''
-
-  // Validation
   if (!description.value.trim()) {
     error.value = 'Description is required'
+    return false
+  }
+  return true
+}
+
+async function handleSubmit() {
+  if (!validate()) {
     return
   }
 
-  // Build request data
-  if (props.mode === 'create') {
-    const createData: CreateTaskItemRequest = {
-      description: description.value.trim(),
+  // ← FIXED: Don't include 'id' in the object
+  if (props.isEdit) {
+    // For UPDATE: only send description and isCompleted
+    emit('submit', {
+      description: description.value,
       isCompleted: isCompleted.value,
-      taskId: props.taskId,
-    }
-    console.log('🔵 TaskItemForm EMIT (create):', createData)
-    emit('submit', createData)
+    })
   } else {
-    const updateData: UpdateTaskItemRequest = {
-      id: props.taskItem!.id,
-      description: description.value.trim(),
-      isCompleted: isCompleted.value,
+    // For CREATE: send taskId, description, and isCompleted
+    emit('submit', {
       taskId: props.taskId,
-    }
-    console.log('🔵 TaskItemForm EMIT (edit):', updateData)
-    emit('submit', updateData)
+      description: description.value,
+      isCompleted: isCompleted.value,
+    })
   }
 }
 </script>
 
+<!-- Template stays the same -->
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
-    <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-      {{ error }}
-    </div>
+    <div v-if="error" class="text-red-600 text-sm">{{ error }}</div>
 
-    <!-- Description -->
     <div>
       <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
-        Item Description <span class="text-red-500">*</span>
+        Description <span class="text-red-500">*</span>
       </label>
       <textarea
         id="description"
         v-model="description"
         rows="3"
-        placeholder="e.g., Buy 2 liters of milk"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        placeholder="Enter task item description"
         required
       ></textarea>
     </div>
 
-    <!-- Completed Checkbox (only for edit mode) -->
-    <div v-if="mode === 'edit'" class="flex items-center">
+    <div class="flex items-center">
       <input
         id="isCompleted"
         v-model="isCompleted"
         type="checkbox"
-        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+        class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
       />
       <label for="isCompleted" class="ml-2 text-sm text-gray-700">
         Mark as completed
       </label>
     </div>
 
-    <!-- Buttons -->
-    <div class="flex gap-3 pt-4">
+    <div class="flex gap-3">
       <button
         type="submit"
-        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
+        class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
       >
-        {{ mode === 'create' ? 'Add Item' : 'Update Item' }}
+        {{ isEdit ? 'Update' : 'Create' }}
       </button>
       <button
         type="button"
         @click="emit('cancel')"
-        class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+        class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium"
       >
         Cancel
       </button>

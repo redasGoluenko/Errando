@@ -2,27 +2,25 @@ import apiClient from './api'
 
 export interface TaskItem {
   id: number
-  description: string
-  status: string
-  isCompleted: boolean
   taskId: number
-  createdAt: string
-  updatedAt: string
+  description: string
+  isCompleted: boolean
 }
 
 export interface CreateTaskItemRequest {
-  description: string
   taskId: number
+  description: string
+  isCompleted: boolean
 }
 
 export interface UpdateTaskItemRequest {
   description: string
   isCompleted: boolean
-  taskId: number
+  // ← DON'T include 'id' here - it's passed as a parameter to updateTaskItem()
 }
 
 export const taskItemsService = {
-  async getTaskItemsByTaskId(taskId: number): Promise<TaskItem[]> {
+  async getTaskItems(taskId: number): Promise<TaskItem[]> {
     console.log('📤 GET TASK ITEMS FOR TASK:', taskId)
     const response = await apiClient.get<TaskItem[]>(`/TaskItems?taskId=${taskId}`)
     console.log('✅ GET TASK ITEMS SUCCESS:', response.data)
@@ -37,18 +35,8 @@ export const taskItemsService = {
   },
 
   async updateTaskItem(id: number, data: UpdateTaskItemRequest): Promise<TaskItem> {
-    console.log('📤 UPDATE TASK ITEM REQUEST:', id, data)
-
-    // Backend expects full TaskItem object with Id
-    const fullItem = {
-      id: id,
-      description: data.description,
-      isCompleted: data.isCompleted,
-      taskId: data.taskId,
-      status: 'Pending', // Default status
-    }
-
-    const response = await apiClient.patch<TaskItem>(`/TaskItems/${id}`, fullItem)
+    console.log('📤 UPDATE TASK ITEM:', id, data)
+    const response = await apiClient.put<TaskItem>(`/TaskItems/${id}`, data)
     console.log('✅ UPDATE TASK ITEM SUCCESS:', response.data)
     return response.data
   },
@@ -57,12 +45,5 @@ export const taskItemsService = {
     console.log('📤 DELETE TASK ITEM:', id)
     await apiClient.delete(`/TaskItems/${id}`)
     console.log('✅ DELETE TASK ITEM SUCCESS')
-  },
-
-  async toggleComplete(id: number, isCompleted: boolean): Promise<void> {
-    console.log('📤 TOGGLE TASK ITEM COMPLETE:', id, isCompleted)
-    const endpoint = isCompleted ? `/TaskItems/${id}/complete` : `/TaskItems/${id}/incomplete`
-    await apiClient.patch(endpoint)
-    console.log('✅ TOGGLE COMPLETE SUCCESS')
   },
 }

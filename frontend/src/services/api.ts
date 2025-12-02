@@ -1,14 +1,21 @@
 import axios from 'axios'
 
-// Azure backend URL arba local
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5064/api'
+// ← CHANGE to the new URL:
+const API_BASE_URL = 'https://errando-app-01-gqa9bvctezcgg0h4.swedencentral-01.azurewebsites.net/api'
 
-// Axios instance
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 export interface LoginRequest {
@@ -30,13 +37,13 @@ export interface AuthResponse {
 }
 
 export const authService = {
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>('/Users/login', data)
-    // Save to localStorage
-    localStorage.setItem('token', response.data.token)
-    localStorage.setItem('userId', response.data.userId.toString())
-    localStorage.setItem('username', response.data.username)
-    localStorage.setItem('role', response.data.role)
+  async login(credentials: { username: string; password: string }) {
+    const response = await apiClient.post('/Users/login', credentials) // ← FIX: /Users/login
+    const { token, username, role, userId } = response.data
+    localStorage.setItem('token', token)
+    localStorage.setItem('username', username)
+    localStorage.setItem('role', role)
+    localStorage.setItem('userId', userId?.toString() || '')
     return response.data
   },
 
@@ -47,18 +54,13 @@ export const authService = {
 
   logout() {
     localStorage.removeItem('token')
-    localStorage.removeItem('userId')
     localStorage.removeItem('username')
     localStorage.removeItem('role')
+    localStorage.removeItem('userId')
   },
 
-  getToken(): string | null {
-    return localStorage.getItem('token')
-  },
-
-  getUserId(): number | null {
-    const id = localStorage.getItem('userId')
-    return id ? parseInt(id) : null
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('token')
   },
 
   getRole(): string | null {
@@ -69,18 +71,10 @@ export const authService = {
     return localStorage.getItem('username')
   },
 
-  isAuthenticated(): boolean {
-    return !!this.getToken()
+  getUserId(): number | null {
+    const id = localStorage.getItem('userId')
+    return id ? parseInt(id) : null
   },
 }
-
-// Add JWT token to every request
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
 
 export default apiClient

@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "H4f+wrSXC8M=",
+  "dgSpecHash": "4ZGhP5i5aqs=",
   "success": true,
   "projectFilePath": "C:\\Users\\redas\\Errando\\backend\\backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\redas\\.nuget\\packages\\bcrypt.net-next\\4.0.2\\bcrypt.net-next.4.0.2.nupkg.sha512",
+    "C:\\Users\\redas\\.nuget\\packages\\efcore.namingconventions\\9.0.0\\efcore.namingconventions.9.0.0.nupkg.sha512",
     "C:\\Users\\redas\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\redas\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\7.0.0\\microsoft.aspnetcore.authentication.jwtbearer.7.0.0.nupkg.sha512",
     "C:\\Users\\redas\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.4\\microsoft.aspnetcore.openapi.9.0.4.nupkg.sha512",

@@ -1,166 +1,153 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Errando.Data; // ← CHANGE FROM backend TO Errando.Data
+using Errando.Data;
+using System.Security.Claims;
 
-namespace backend.Controllers;
-
-[Authorize]
-[ApiController]
-[Route("api/[controller]")]
-public class TaskItemsController : ControllerBase
+namespace Errando.Controllers
 {
-    private readonly AppDbContext _context;
-
-    public TaskItemsController(AppDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class TaskItemsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly AppDbContext _context;
 
-    // GET: api/TaskItems?taskId=1
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<TaskItem>>> GetTaskItems([FromQuery] int? taskId)
-    {
-        // If taskId is provided, filter by it
-        if (taskId.HasValue)
+        public TaskItemsController(AppDbContext context)
         {
-            return await _context.TaskItems
-                .Where(ti => ti.TaskId == taskId.Value)
+            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> GetTaskItems([FromQuery] int taskId)
+        {
+            var taskItems = await _context.TaskItems
+                .Where(ti => ti.TaskId == taskId)
                 .OrderBy(ti => ti.Id)
                 .ToListAsync();
-        }
 
-        // Otherwise return all (for admin/debugging)
-        return await _context.TaskItems
-            .OrderBy(ti => ti.TaskId)
-            .ThenBy(ti => ti.Id)
-            .ToListAsync();
-    }
-
-    // GET: api/TaskItems/{id}
-    [HttpGet("{id}")]
-    public async Task<ActionResult<TaskItem>> GetTaskItem(int id)
-    {
-        var taskItem = await _context.TaskItems.FindAsync(id);
-
-        if (taskItem == null)
-        {
-            return NotFound(new { message = "Task item not found" });
-        }
-
-        return taskItem;
-    }
-
-    // POST: api/TaskItems
-    [HttpPost]
-    public async Task<ActionResult<TaskItem>> CreateTaskItem([FromBody] TaskItem taskItem)
-    {
-        // DEBUG: Log incoming data
-        Console.WriteLine($"📥 CREATE TaskItem - TaskId: {taskItem.TaskId}, Description: {taskItem.Description}");
-        
-        // Validate that the task exists
-        var taskExists = await _context.Tasks.AnyAsync(t => t.Id == taskItem.TaskId);
-        if (!taskExists)
-        {
-            Console.WriteLine($"❌ Task {taskItem.TaskId} does not exist!");
-            return BadRequest(new { message = "Invalid TaskId. Task does not exist." });
-        }
-
-        _context.TaskItems.Add(taskItem);
-        await _context.SaveChangesAsync();
-        
-        // DEBUG: Log saved data
-        Console.WriteLine($"✅ TaskItem created with ID: {taskItem.Id}, TaskId: {taskItem.TaskId}");
-
-        return CreatedAtAction(nameof(GetTaskItem), new { id = taskItem.Id }, taskItem);
-    }
-
-    // PATCH: api/TaskItems/{id}
-    [HttpPatch("{id}")]
-    public async Task<ActionResult<TaskItem>> UpdateTaskItem(int id, [FromBody] TaskItem taskItem)
-    {
-        if (id != taskItem.Id)
-        {
-            return BadRequest(new { message = "ID mismatch" });
-        }
-
-        var existingItem = await _context.TaskItems.FindAsync(id);
-        if (existingItem == null)
-        {
-            return NotFound(new { message = "Task item not found" });
-        }
-
-        // Update fields
-        existingItem.Description = taskItem.Description;
-        existingItem.IsCompleted = taskItem.IsCompleted;
-        existingItem.TaskId = taskItem.TaskId;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!TaskItemExists(id))
+            return Ok(taskItems.Select(ti => new
             {
-                return NotFound();
+                id = ti.Id,
+                taskId = ti.TaskId,
+                description = ti.Description,
+                isCompleted = ti.IsCompleted
+            }));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Client,Admin")]
+        public async Task<ActionResult<object>> CreateTaskItem(CreateTaskItemDto dto)
+        {
+            var task = await _context.Tasks.FindAsync(dto.TaskId);
+            if (task == null)
+            {
+                return NotFound(new { message = "Task not found" });
             }
-            throw;
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (userRole != "Admin" && task.ClientId != userId)
+            {
+                return Forbid();
+            }
+
+            var taskItem = new TaskItem
+            {
+                TaskId = dto.TaskId,
+                Description = dto.Description,
+                IsCompleted = dto.IsCompleted
+            };
+
+            _context.TaskItems.Add(taskItem);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetTaskItems), new { taskId = taskItem.TaskId }, new
+            {
+                id = taskItem.Id,
+                taskId = taskItem.TaskId,
+                description = taskItem.Description,
+                isCompleted = taskItem.IsCompleted
+            });
         }
 
-        return existingItem;
-    }
-
-    // PATCH: api/TaskItems/{id}/complete
-    [HttpPatch("{id}/complete")]
-    public async Task<ActionResult<TaskItem>> CompleteTaskItem(int id)
-    {
-        var taskItem = await _context.TaskItems.FindAsync(id);
-        if (taskItem == null)
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Runner,Client,Admin")]
+        public async Task<ActionResult<object>> UpdateTaskItem(int id, UpdateTaskItemDto dto)
         {
-            return NotFound(new { message = "Task item not found" });
+            var taskItem = await _context.TaskItems
+                .Include(ti => ti.Task)
+                .FirstOrDefaultAsync(ti => ti.Id == id);
+
+            if (taskItem == null)
+            {
+                return NotFound(new { message = "Task item not found" });
+            }
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            // Check permissions: Client who owns the task, Runner assigned to task, or Admin
+            if (userRole != "Admin" && 
+                taskItem.Task.ClientId != userId && 
+                taskItem.Task.RunnerId != userId)
+            {
+                return Forbid();
+            }
+
+            taskItem.Description = dto.Description;
+            taskItem.IsCompleted = dto.IsCompleted;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = taskItem.Id,
+                taskId = taskItem.TaskId,
+                description = taskItem.Description,
+                isCompleted = taskItem.IsCompleted
+            });
         }
 
-        taskItem.IsCompleted = true;
-        await _context.SaveChangesAsync();
-
-        return taskItem;
-    }
-
-    // PATCH: api/TaskItems/{id}/incomplete
-    [HttpPatch("{id}/incomplete")]
-    public async Task<ActionResult<TaskItem>> IncompleteTaskItem(int id)
-    {
-        var taskItem = await _context.TaskItems.FindAsync(id);
-        if (taskItem == null)
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Client,Admin")]
+        public async Task<IActionResult> DeleteTaskItem(int id)
         {
-            return NotFound(new { message = "Task item not found" });
+            var taskItem = await _context.TaskItems
+                .Include(ti => ti.Task)
+                .FirstOrDefaultAsync(ti => ti.Id == id);
+
+            if (taskItem == null)
+            {
+                return NotFound(new { message = "Task item not found" });
+            }
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (userRole != "Admin" && taskItem.Task.ClientId != userId)
+            {
+                return Forbid();
+            }
+
+            _context.TaskItems.Remove(taskItem);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Task item deleted successfully" });
         }
-
-        taskItem.IsCompleted = false;
-        await _context.SaveChangesAsync();
-
-        return taskItem;
     }
 
-    // DELETE: api/TaskItems/{id}
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTaskItem(int id)
+    public class CreateTaskItemDto
     {
-        var taskItem = await _context.TaskItems.FindAsync(id);
-        if (taskItem == null)
-        {
-            return NotFound(new { message = "Task item not found" });
-        }
-
-        _context.TaskItems.Remove(taskItem);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        public int TaskId { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; }
     }
 
-    private bool TaskItemExists(int id)
+    public class UpdateTaskItemDto
     {
-        return _context.TaskItems.Any(e => e.Id == id);
+        public string Description { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; }
     }
 }

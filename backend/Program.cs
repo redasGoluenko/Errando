@@ -8,21 +8,26 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+    )
+    // DELETE THIS LINE if it exists:
+    // .UseSnakeCaseNamingConvention()
+);
 
 // CORS: pakeisk origin pagal frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy
-            .WithOrigins(
-                "http://localhost:5173",  // Vite dev server
-                "http://localhost:3000"  // jei naudoji kitą portą
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "https://errandofrontend.z1.web.core.windows.net"  // ← Should be here
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
@@ -89,6 +94,7 @@ builder.Services.AddSwaggerGen(c =>
 // pridėti policies
 builder.Services.AddAuthorization(options =>
 {
+    
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     options.AddPolicy("RunnerOrAdmin", policy => policy.RequireRole("Runner", "Admin"));
     options.AddPolicy("ClientOrAdmin", policy => policy.RequireRole("Client", "Admin"));
@@ -96,21 +102,8 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// remove or replace the dev-only block:
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Errando v1");
-        c.RoutePrefix = "swagger";
-    });
-}
-
-app.UseHttpsRedirection();
-
-app.UseCors("AllowFrontend");
-
+// IMPORTANT: CORS must come BEFORE Authentication and Authorization
+app.UseCors("AllowFrontend");  // ← This line MUST be here
 app.UseAuthentication();
 app.UseAuthorization();
 

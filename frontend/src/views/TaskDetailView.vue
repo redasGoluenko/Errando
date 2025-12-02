@@ -115,7 +115,8 @@ async function fetchTaskItems() {
   loading.value = true
   error.value = ''
   try {
-    taskItems.value = await taskItemsService.getTaskItemsByTaskId(taskId.value)
+    const items = await taskItemsService.getTaskItems(taskId.value)  // ← ADD .value
+    taskItems.value = items
   } catch (err: any) {
     console.error('Failed to fetch task items:', err)
     error.value = err.response?.data?.message || 'Failed to load task items'
@@ -130,7 +131,6 @@ async function toggleItemCompletion(item: TaskItem) {
     const updatedItem: UpdateTaskItemRequest = {
       description: item.description,
       isCompleted: !item.isCompleted,
-      taskId: item.taskId
     }
     
     await taskItemsService.updateTaskItem(item.id, updatedItem)
@@ -179,7 +179,6 @@ async function handleEditItem() {
     await taskItemsService.updateTaskItem(selectedTaskItem.value.id, {
       description: itemDescription.value,
       isCompleted: selectedTaskItem.value.isCompleted,
-      taskId: selectedTaskItem.value.taskId,
     })
 
     showEditItemModal.value = false
