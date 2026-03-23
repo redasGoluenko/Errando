@@ -60,6 +60,12 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'Admin' }
     },
     {
+      path: '/admin/complaints',
+      name: 'Complaints',
+      component: () => import('../views/ComplaintsView.vue'),
+      meta: { requiresAuth: true, role: 'Admin' }
+    },
+    {
       path: '/runner',
       redirect: '/runner/tasks'
     },

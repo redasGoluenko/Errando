@@ -61,7 +61,7 @@ public class StatusLogsController : ControllerBase
         {
             TaskItemId = dto.TaskItemId,
             Status = dto.Status,
-            Comment = dto.Comment,
+            Comment = dto.Comment ?? string.Empty,
             RunnerId = userId,
             Timestamp = DateTime.UtcNow
         };
@@ -114,7 +114,7 @@ public class StatusLogsController : ControllerBase
 
         // Update fields
         statusLog.Status = dto.Status;
-        statusLog.Comment = dto.Comment;
+        statusLog.Comment = dto.Comment ?? string.Empty;
         // Note: We keep the original Timestamp, don't update it
 
         await _context.SaveChangesAsync();

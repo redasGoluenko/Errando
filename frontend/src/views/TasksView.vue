@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { tasksService, type Task, type CreateTaskRequest, type UpdateTaskRequest } from '@/services/tasksService'
+import { complaintsService, type CreateComplaintRequest } from '@/services/complaintsService'
 import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskForm from '@/components/TaskForm.vue'
@@ -25,7 +26,9 @@ const toastType = ref<'success' | 'error'>('success')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showComplaintModal = ref(false)
 const selectedTask = ref<Task | null>(null)
+const complaintText = ref('')
 
 // User info
 const userRole = authService.getRole()
@@ -138,7 +141,36 @@ function closeModals() {
   showCreateModal.value = false
   showEditModal.value = false
   showDeleteModal.value = false
+  showComplaintModal.value = false
   selectedTask.value = null
+  complaintText.value = ''
+}
+
+function openComplaintModal(task: Task) {
+  selectedTask.value = task
+  complaintText.value = ''
+  showComplaintModal.value = true
+}
+
+async function handleSubmitComplaint() {
+  if (!selectedTask.value || !complaintText.value.trim()) {
+    showNotification('Please enter a complaint', 'error')
+    return
+  }
+
+  try {
+    const request: CreateComplaintRequest = {
+      description: complaintText.value,
+      taskId: selectedTask.value.id
+    }
+    await complaintsService.createComplaint(request)
+    closeModals()
+    await fetchTasks()
+    showNotification('Complaint submitted successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to submit complaint:', err)
+    showNotification(err.response?.data?.message || 'Failed to submit complaint', 'error')
+  }
 }
 
 // Format date for display
@@ -325,16 +357,26 @@ function canModifyTask(task: Task): boolean {
 
           <!-- Task Actions -->
           <div class="bg-gray-50 px-6 py-3 flex items-center justify-between gap-2 border-t">
-            <!-- View Details Button -->
+            <!-- Active Task: View Details Button -->
             <router-link
+              v-if="!task.isCompleted"
               :to="`/tasks/${task.id}`"
               class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm"
             >
               View Details
             </router-link>
 
-            <!-- Edit/Delete (only if can modify) -->
-            <div v-if="canModifyTask(task)" class="flex items-center gap-2">
+            <!-- Completed Task: Leave Complaint Button (Client) -->
+            <button
+              v-if="task.isCompleted && userRole === 'Client'"
+              @click="openComplaintModal(task)"
+              class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition duration-200 font-medium text-sm"
+            >
+              Leave Complaint
+            </button>
+
+            <!-- Edit/Delete for Active Tasks -->
+            <div v-if="!task.isCompleted && canModifyTask(task)" class="flex items-center gap-2">
               <button
                 @click="openEditModal(task)"
                 class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -364,6 +406,23 @@ function canModifyTask(task: Task): boolean {
                 </svg>
               </button>
             </div>
+
+            <!-- Delete for Completed Tasks -->
+            <button
+              v-if="task.isCompleted && canModifyTask(task)"
+              @click="openDeleteModal(task)"
+              class="ml-auto p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+              title="Delete task"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -419,6 +478,41 @@ function canModifyTask(task: Task): boolean {
           >
             Cancel
           </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Leave Complaint Modal -->
+    <Modal :show="showComplaintModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Leave a Complaint</h3>
+      </template>
+      <template #body>
+        <div v-if="selectedTask">
+          <p class="text-gray-600 mb-4">
+            Task: <span class="font-semibold">{{ selectedTask.title }}</span>
+          </p>
+          <textarea
+            v-model="complaintText"
+            placeholder="Describe your complaint..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows="5"
+          />
+          <p class="text-sm text-gray-500 mt-2">Maximum 1000 characters</p>
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="handleSubmitComplaint"
+              class="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition duration-200 font-medium"
+            >
+              Submit Complaint
+            </button>
+            <button
+              @click="closeModals"
+              class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </template>
     </Modal>

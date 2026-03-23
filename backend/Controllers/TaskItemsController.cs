@@ -90,8 +90,8 @@ namespace Errando.Controllers
 
             // Check permissions: Client who owns the task, Runner assigned to task, or Admin
             if (userRole != "Admin" && 
-                taskItem.Task.ClientId != userId && 
-                taskItem.Task.RunnerId != userId)
+                taskItem.Task?.ClientId != userId && 
+                taskItem.Task?.RunnerId != userId)
             {
                 return Forbid();
             }

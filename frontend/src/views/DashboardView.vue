@@ -76,6 +76,25 @@
           </div>
         </router-link>
 
+        <!-- Complaints (Admin only) -->
+        <router-link
+          v-if="role === 'Admin'"
+          to="/admin/complaints"
+          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
+        >
+          <div class="flex items-center gap-4">
+            <div class="p-3 bg-orange-100 rounded-lg">
+              <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800">Complaints</h3>
+              <p class="text-sm text-gray-600">Review client complaints</p>
+            </div>
+          </div>
+        </router-link>
+
         <!-- Client: Completed Tasks Preview -->
         <div v-if="role === 'Client'" class="bg-white rounded-lg shadow-md p-6">
           <div class="flex items-center justify-between mb-4">
