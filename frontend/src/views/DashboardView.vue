@@ -123,24 +123,61 @@
           </router-link>
         </div>
 
-        <!-- Runner: View Assigned Tasks -->
-        <router-link
-          v-if="role === 'Runner'"
-          to="/runner/tasks"
-          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
-        >
-          <div class="flex items-center gap-4">
-            <div class="p-3 bg-green-100 rounded-lg">
-              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800">My Tasks</h3>
-              <p class="text-sm text-gray-600">View and manage assigned tasks</p>
+        <!-- Runner: My Assigned Tasks -->
+        <div v-if="role === 'Runner'" class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">My Tasks</h3>
+            <span class="px-2 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded">
+              {{ allRunnerAssignedTasks.length }}
+            </span>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div v-if="loading" class="text-gray-500 text-sm">Loading tasks...</div>
+            <div v-else-if="runnerAssignedTasks.length === 0" class="text-gray-500 text-sm">No assigned tasks</div>
+            <div v-else>
+              <div v-for="task in runnerAssignedTasks" :key="task.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ task.title }}</h4>
+                <p class="text-xs text-gray-600 mt-1 truncate">{{ task.description }}</p>
+              </div>
             </div>
           </div>
-        </router-link>
+          
+          <router-link
+            to="/runner/tasks?tab=my-tasks"
+            class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition text-center"
+          >
+            View All
+          </router-link>
+        </div>
+
+        <!-- Runner: Available Tasks -->
+        <div v-if="role === 'Runner'" class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Available Tasks</h3>
+            <span class="px-2 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded">
+              {{ allRunnerAvailableTasks.length }}
+            </span>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div v-if="loading" class="text-gray-500 text-sm">Loading tasks...</div>
+            <div v-else-if="runnerAvailableTasks.length === 0" class="text-gray-500 text-sm">All tasks assigned</div>
+            <div v-else>
+              <div v-for="task in runnerAvailableTasks" :key="task.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ task.title }}</h4>
+                <p class="text-xs text-gray-600 mt-1 truncate">{{ task.description }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <router-link
+            to="/runner/tasks?tab=available"
+            class="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition text-center"
+          >
+            View All
+          </router-link>
+        </div>
       </div>
     </main>
   </div>
@@ -156,17 +193,38 @@ const router = useRouter()
 
 const username = ref(authService.getUsername())
 const role = ref(authService.getRole())
+const userId = authService.getUserId()
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 
-// Computed: First 3 non-completed tasks
+// Computed: First 3 non-completed tasks (for clients)
 const myTasks = computed(() =>
   tasks.value.filter(t => !t.isCompleted).slice(0, 3)
 )
 
-// Computed: First 3 completed tasks
+// Computed: First 3 completed tasks (for clients)
 const completedTasks = computed(() =>
   tasks.value.filter(t => t.isCompleted).slice(0, 3)
+)
+
+// Computed: All runner assigned tasks (for counting)
+const allRunnerAssignedTasks = computed(() =>
+  tasks.value.filter(t => t.runnerId === userId)
+)
+
+// Computed: First 3 runner assigned tasks (for display)
+const runnerAssignedTasks = computed(() =>
+  allRunnerAssignedTasks.value.slice(0, 3)
+)
+
+// Computed: All runner available tasks (for counting)
+const allRunnerAvailableTasks = computed(() =>
+  tasks.value.filter(t => !t.runnerId)
+)
+
+// Computed: First 3 runner available tasks (for display)
+const runnerAvailableTasks = computed(() =>
+  allRunnerAvailableTasks.value.slice(0, 3)
 )
 
 onMounted(() => {
@@ -174,8 +232,8 @@ onMounted(() => {
   role.value = authService.getRole()
   console.log('Dashboard user:', username.value, role.value)
   
-  // Fetch tasks for clients
-  if (role.value === 'Client') {
+  // Fetch tasks for clients and runners
+  if (role.value === 'Client' || role.value === 'Runner') {
     fetchTasks()
   }
 })

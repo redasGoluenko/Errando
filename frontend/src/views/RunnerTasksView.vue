@@ -17,8 +17,12 @@
         Back to Dashboard
       </router-link>
 
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">Runner Dashboard</h1>
-      <p class="text-gray-600 mb-8">View and manage your assigned tasks</p>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">
+        {{ activeTab === 'my-tasks' ? 'My Assigned Tasks' : 'Available Tasks' }}
+      </h1>
+      <p class="text-gray-600 mb-8">
+        {{ activeTab === 'my-tasks' ? 'View and manage your assigned tasks' : 'Find and assign unassigned tasks' }}
+      </p>
 
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-12">
@@ -32,11 +36,11 @@
       </div>
 
       <!-- Tasks Content -->
-      <div v-else class="space-y-8">
-        <!-- My Assigned Tasks -->
-        <section>
+      <div v-else>
+        <!-- My Assigned Tasks Tab -->
+        <section v-if="activeTab === 'my-tasks'">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-semibold text-gray-800">My Tasks</h2>
+            <h2 class="text-2xl font-semibold text-gray-800">My Assigned Tasks</h2>
             <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
               {{ myTasks.length }} tasks
             </span>
@@ -48,7 +52,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <h3 class="mt-4 text-lg font-medium text-gray-900">No assigned tasks</h3>
-            <p class="mt-2 text-gray-500">Assign yourself a task from the available tasks below</p>
+            <p class="mt-2 text-gray-500">Go back to the dashboard and click "Available Tasks" to find tasks to assign</p>
           </div>
 
           <!-- My Tasks Grid -->
@@ -97,8 +101,8 @@
           </div>
         </section>
 
-        <!-- Available Tasks -->
-        <section>
+        <!-- Available Tasks Tab -->
+        <section v-if="activeTab === 'available'">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-2xl font-semibold text-gray-800">Available Tasks</h2>
             <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
@@ -154,17 +158,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { tasksService, type Task } from '@/services/tasksService'
 import { authService } from '@/services/api'
 import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 // State
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref('')
+const activeTab = ref<'my-tasks' | 'available'>((route.query.tab as 'my-tasks' | 'available') || 'my-tasks')
 
 // Toast
 const showToast = ref(false)
