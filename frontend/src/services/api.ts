@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // ← CHANGE to the new URL:
-const API_BASE_URL = 'https://errando-app-01-gqa9bvctezcgg0h4.swedencentral-01.azurewebsites.net/api'
+const API_BASE_URL = 'http://localhost:5064/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

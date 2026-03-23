@@ -41,7 +41,7 @@ public class TasksController : ControllerBase
         }
         // Admin sees all tasks (no filter)
 
-        var tasks = await query.ToListAsync();
+        var tasks = await query.Include(t => t.TaskItems).ToListAsync();
 
         return Ok(tasks.Select(t => new
         {
@@ -55,7 +55,8 @@ public class TasksController : ControllerBase
             runnerId = t.RunnerId,
             runnerUsername = t.Runner?.Username,
             createdAt = t.CreatedAt,
-            updatedAt = t.UpdatedAt
+            updatedAt = t.UpdatedAt,
+            isCompleted = t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted)
         }));
     }
 
@@ -65,6 +66,7 @@ public class TasksController : ControllerBase
         var task = await _context.Tasks
             .Include(t => t.Client)
             .Include(t => t.Runner)  // ← Make sure this is here
+            .Include(t => t.TaskItems)
             .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null)
@@ -84,7 +86,8 @@ public class TasksController : ControllerBase
             runnerId = task.RunnerId,
             runnerUsername = task.Runner?.Username,  // ← ADD THIS
             createdAt = task.CreatedAt,
-            updatedAt = task.UpdatedAt
+            updatedAt = task.UpdatedAt,
+            isCompleted = task.TaskItems.Count > 0 && task.TaskItems.All(ti => ti.IsCompleted)
         });
     }
 

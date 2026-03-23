@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { tasksService, type Task, type CreateTaskRequest, type UpdateTaskRequest } from '@/services/tasksService'
 import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import Toast from '@/components/Toast.vue'
 
+// Route
+const route = useRoute()
+
 // State
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref('')
+const activeTab = ref<'all' | 'completed'>((route.query.tab as 'all' | 'completed') || 'all')
 
 // Toast state
 const showToast = ref(false)
@@ -26,6 +31,21 @@ const selectedTask = ref<Task | null>(null)
 const userRole = authService.getRole()
 const userId = authService.getUserId()
 const username = authService.getUsername()
+
+// Computed: Filtered tasks based on active tab
+const filteredTasks = computed(() => {
+  if (userRole !== 'Client') {
+    // Admins see all tasks
+    return tasks.value
+  }
+  
+  // Clients see filtered by tab
+  if (activeTab.value === 'completed') {
+    return tasks.value.filter(t => t.isCompleted)
+  }
+  // For 'all' tab, show only non-completed tasks
+  return tasks.value.filter(t => !t.isCompleted)
+})
 
 // Fetch tasks on mount
 onMounted(() => {
@@ -224,27 +244,54 @@ function canModifyTask(task: Task): boolean {
         </button>
       </div>
 
+      <!-- Empty state when no tasks match the filter -->
+      <div v-if="filteredTasks.length === 0 && activeTab === 'completed'" class="bg-white rounded-lg shadow-md p-12 text-center">
+        <svg
+          class="mx-auto h-16 w-16 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">No completed tasks</h3>
+        <p class="mt-2 text-gray-500">You haven't completed any tasks yet</p>
+      </div>
+
       <!-- Tasks Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else-if="filteredTasks.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
-          v-for="task in tasks"
+          v-for="task in filteredTasks"
           :key="task.id"
           class="bg-white rounded-lg shadow-md hover:shadow-lg transition duration-200 overflow-hidden"
         >
           <!-- Task Header -->
           <div class="p-6">
-            <div class="flex items-start justify-between">
+            <div class="flex items-start justify-between mb-3">
               <h3 class="text-lg font-semibold text-gray-900 flex-1">{{ task.title }}</h3>
-              <span
-                :class="[
-                  'px-2 py-1 text-xs rounded-full font-medium',
-                  isUpcoming(task.scheduledTime)
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-700',
-                ]"
-              >
-                {{ isUpcoming(task.scheduledTime) ? 'Upcoming' : 'Past' }}
-              </span>
+              <div class="flex gap-2">
+                <span
+                  :class="[
+                    'px-2 py-1 text-xs rounded-full font-medium',
+                    isUpcoming(task.scheduledTime)
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700',
+                  ]"
+                >
+                  {{ isUpcoming(task.scheduledTime) ? 'Upcoming' : 'Past' }}
+                </span>
+                <span
+                  v-if="task.isCompleted"
+                  class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-700"
+                >
+                  ✓ Completed
+                </span>
+              </div>
             </div>
 
             <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ task.description }}</p>

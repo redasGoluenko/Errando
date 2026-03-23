@@ -18,6 +18,7 @@ export interface Task {
   taskItems?: any[]
   createdAt: string  // ← ADD THIS
   updatedAt: string  // ← ADD THIS
+  isCompleted: boolean
 }
 
 export interface CreateTaskRequest {
