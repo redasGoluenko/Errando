@@ -74,6 +74,18 @@ async function handleDeleteComplaint() {
   }
 }
 
+// Resolve complaint
+async function handleResolveComplaint(complaint: Complaint) {
+  try {
+    await complaintsService.resolveComplaint(complaint.id)
+    await fetchComplaints()
+    showNotification(`Complaint for "${complaint.taskTitle}" marked as resolved!`, 'success')
+  } catch (err: any) {
+    console.error('Failed to resolve complaint:', err)
+    showNotification('Failed to resolve complaint', 'error')
+  }
+}
+
 function closeModal() {
   showDeleteModal.value = false
   selectedComplaint.value = null
@@ -153,23 +165,41 @@ function formatDate(isoString: string): string {
           <!-- Complaint Header -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">{{ complaint.taskTitle }}</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-gray-900">{{ complaint.taskTitle }}</h3>
+                <span
+                  v-if="complaint.isResolved"
+                  class="px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded"
+                >
+                  Resolved
+                </span>
+              </div>
               <p class="text-sm text-gray-600 mt-1">Task ID: {{ complaint.taskId }}</p>
             </div>
-            <button
-              @click="openDeleteModal(complaint)"
-              class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-              title="Delete complaint"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
+            <div class="flex gap-2">
+              <button
+                v-if="!complaint.isResolved"
+                @click="handleResolveComplaint(complaint)"
+                class="px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition text-sm font-medium"
+                title="Mark complaint as resolved"
+              >
+                ✓ Resolve
+              </button>
+              <button
+                @click="openDeleteModal(complaint)"
+                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                title="Delete complaint"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Complaint Details -->

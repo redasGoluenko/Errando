@@ -11,6 +11,7 @@ namespace Errando.DTOs
         public int RunnerId { get; set; }
         public string RunnerUsername { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public bool IsResolved { get; set; }
     }
 
     public class CreateComplaintDto

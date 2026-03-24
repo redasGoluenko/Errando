@@ -102,6 +102,21 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// Apply pending migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        dbContext.Database.Migrate();
+        Console.WriteLine("✅ Database migrations applied successfully");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error applying migrations: {ex.Message}");
+    }
+}
+
 // IMPORTANT: CORS must come BEFORE Authentication and Authorization
 app.UseCors("AllowFrontend");  // ← This line MUST be here
 app.UseAuthentication();

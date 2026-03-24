@@ -42,7 +42,8 @@ public class ComplaintsController : ControllerBase
                 ClientUsername = c.Client?.Username ?? string.Empty,
                 RunnerId = c.RunnerId,
                 RunnerUsername = c.Runner?.Username ?? string.Empty,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+                IsResolved = c.IsResolved
             }));
         }
         catch (Exception ex)
@@ -135,7 +136,8 @@ public class ComplaintsController : ControllerBase
             ClientUsername = createdComplaint.Client?.Username ?? string.Empty,
             RunnerId = createdComplaint.RunnerId,
             RunnerUsername = createdComplaint.Runner?.Username ?? string.Empty,
-            CreatedAt = createdComplaint.CreatedAt
+            CreatedAt = createdComplaint.CreatedAt,
+            IsResolved = createdComplaint.IsResolved
         });
     }
 
@@ -153,5 +155,39 @@ public class ComplaintsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPatch("{id}/resolve")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ComplaintDto>> ResolveComplaint(int id)
+    {
+        var complaint = await _context.Complaints
+            .Include(c => c.Task)
+            .Include(c => c.Client)
+            .Include(c => c.Runner)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        
+        if (complaint == null)
+        {
+            return NotFound();
+        }
+
+        complaint.IsResolved = true;
+        _context.Complaints.Update(complaint);
+        await _context.SaveChangesAsync();
+
+        return Ok(new ComplaintDto
+        {
+            Id = complaint.Id,
+            Description = complaint.Description,
+            TaskId = complaint.TaskId,
+            TaskTitle = complaint.Task?.Title ?? string.Empty,
+            ClientId = complaint.ClientId,
+            ClientUsername = complaint.Client?.Username ?? string.Empty,
+            RunnerId = complaint.RunnerId,
+            RunnerUsername = complaint.Runner?.Username ?? string.Empty,
+            CreatedAt = complaint.CreatedAt,
+            IsResolved = complaint.IsResolved
+        });
     }
 }

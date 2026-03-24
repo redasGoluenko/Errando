@@ -10,6 +10,7 @@ export interface Complaint {
   runnerId: number
   runnerUsername: string
   createdAt: string
+  isResolved: boolean
 }
 
 export interface CreateComplaintRequest {
@@ -52,6 +53,19 @@ export const complaintsService = {
       console.log('✅ DELETE COMPLAINT SUCCESS')
     } catch (error: any) {
       console.error('❌ DELETE COMPLAINT ERROR:', error.response?.data)
+      throw error
+    }
+  },
+
+  // Resolve complaint (Admin only)
+  async resolveComplaint(id: number): Promise<Complaint> {
+    console.log('📤 RESOLVE COMPLAINT:', id)
+    try {
+      const response = await apiClient.patch<Complaint>(`/Complaints/${id}/resolve`)
+      console.log('✅ RESOLVE COMPLAINT SUCCESS:', response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('❌ RESOLVE COMPLAINT ERROR:', error.response?.data)
       throw error
     }
   }

@@ -351,19 +351,27 @@ async function fetchTasks() {
 async function fetchAdminData() {
   loading.value = true
   try {
-    const [tasksData, usersData, complaintsData] = await Promise.all([
-      tasksService.getAllTasks(),
-      userService.getAllUsers(),
-      complaintsService.getAllComplaints()
-    ])
+    const tasksData = await tasksService.getAllTasks()
     tasks.value = tasksData
+  } catch (err) {
+    console.error('Failed to fetch tasks:', err)
+  }
+
+  try {
+    const usersData = await userService.getAllUsers()
     users.value = usersData
+  } catch (err) {
+    console.error('Failed to fetch users:', err)
+  }
+
+  try {
+    const complaintsData = await complaintsService.getAllComplaints()
     complaints.value = complaintsData
   } catch (err) {
-    console.error('Failed to fetch admin data:', err)
-  } finally {
-    loading.value = false
+    console.error('Failed to fetch complaints:', err)
   }
+
+  loading.value = false
 }
 
 function getDashboardGreeting() {

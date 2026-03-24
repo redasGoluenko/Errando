@@ -32,5 +32,7 @@ namespace Errando.Data
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public bool IsResolved { get; set; } = false;
     }
 }
