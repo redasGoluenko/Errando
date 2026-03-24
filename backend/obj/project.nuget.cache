@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "gXFZVrxXLlg=",
+  "dgSpecHash": "4ZGhP5i5aqs=",
   "success": true,
-  "projectFilePath": "c:\\Users\\redas\\Errando\\backend\\backend.csproj",
+  "projectFilePath": "C:\\Users\\redas\\Errando\\backend\\backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\redas\\.nuget\\packages\\bcrypt.net-next\\4.0.2\\bcrypt.net-next.4.0.2.nupkg.sha512",
     "C:\\Users\\redas\\.nuget\\packages\\efcore.namingconventions\\9.0.0\\efcore.namingconventions.9.0.0.nupkg.sha512",
