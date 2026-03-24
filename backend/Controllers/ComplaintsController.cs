@@ -54,12 +54,13 @@ public class ComplaintsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = "Client,Runner")]
     public async Task<ActionResult<ComplaintDto>> CreateComplaint([FromBody] CreateComplaintDto dto)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
 
-        // Verify task exists and belongs to the client
+        // Verify task exists
         var task = await _context.Tasks
             .Include(t => t.TaskItems)
             .FirstOrDefaultAsync(t => t.Id == dto.TaskId);
@@ -68,38 +69,49 @@ public class ComplaintsController : ControllerBase
             return NotFound(new { message = "Task not found" });
         }
 
-        if (task.ClientId != userId)
-        {
-            return Forbid();
-        }
-
         // Verify task is completed
         if (task.TaskItems.Count == 0 || !task.TaskItems.All(ti => ti.IsCompleted))
         {
             return BadRequest(new { message = "Can only complain about completed tasks" });
         }
 
-        // Check if runner exists and has an ID
-        if (!task.RunnerId.HasValue)
+        // Authorization: verify user is either the client or the assigned runner
+        if (userRole == "Client")
         {
-            return BadRequest(new { message = "Task has no assigned runner" });
+            if (task.ClientId != userId)
+            {
+                return Forbid();
+            }
+        }
+        else if (userRole == "Runner")
+        {
+            if (!task.RunnerId.HasValue || task.RunnerId != userId)
+            {
+                return Forbid();
+            }
         }
 
         // Check if complaint already exists
         var existingComplaint = await _context.Complaints
-            .FirstOrDefaultAsync(c => c.TaskId == dto.TaskId && c.ClientId == userId);
+            .FirstOrDefaultAsync(c => c.TaskId == dto.TaskId && 
+                ((userRole == "Client" && c.ClientId == userId) || 
+                 (userRole == "Runner" && c.RunnerId == userId)));
         
         if (existingComplaint != null)
         {
             return BadRequest(new { message = "You have already submitted a complaint for this task" });
         }
 
+        // Create complaint with appropriate role context
+        int complaintClientId = userRole == "Client" ? userId : task.ClientId;
+        int complaintRunnerId = userRole == "Runner" ? userId : (task.RunnerId ?? 0);
+
         var complaint = new Complaint
         {
             Description = dto.Description,
             TaskId = dto.TaskId,
-            ClientId = userId,
-            RunnerId = task.RunnerId.Value,
+            ClientId = complaintClientId,
+            RunnerId = complaintRunnerId,
             CreatedAt = DateTime.UtcNow
         };
 

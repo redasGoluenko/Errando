@@ -18,10 +18,10 @@
       </router-link>
 
       <h1 class="text-3xl font-bold text-gray-900 mb-2">
-        {{ activeTab === 'my-tasks' ? 'My Assigned Tasks' : 'Available Tasks' }}
+        {{ activeTab === 'my-tasks' ? 'My Assigned Tasks' : activeTab === 'available' ? 'Available Tasks' : 'Completed Tasks' }}
       </h1>
       <p class="text-gray-600 mb-8">
-        {{ activeTab === 'my-tasks' ? 'View and manage your assigned tasks' : 'Find and assign unassigned tasks' }}
+        {{ activeTab === 'my-tasks' ? 'View and manage your assigned tasks' : activeTab === 'available' ? 'Find and assign unassigned tasks' : 'View your completed tasks' }}
       </p>
 
       <!-- Loading State -->
@@ -151,8 +151,134 @@
             </div>
           </div>
         </section>
+
+        <!-- Completed Tasks Tab -->
+        <section v-if="activeTab === 'completed'">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-semibold text-gray-800">Completed Tasks</h2>
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+              {{ completedTasks.length }} tasks
+            </span>
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="completedTasks.length === 0" class="bg-white rounded-lg shadow-md p-12 text-center">
+            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">No completed tasks</h3>
+            <p class="mt-2 text-gray-500">Go back to the dashboard and click "My Tasks" to work on assigned tasks</p>
+          </div>
+
+          <!-- Completed Tasks Grid -->
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              v-for="task in completedTasks"
+              :key="task.id"
+              class="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 flex-1">{{ task.title }}</h3>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                  ✓ Completed
+                </span>
+              </div>
+
+              <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
+
+              <div class="flex items-center text-sm text-gray-500 mb-4">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {{ formatDate(task.scheduledTime) }}
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex gap-2">
+                <button
+                  @click="openComplaintModal(task)"
+                  class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition duration-200 font-medium text-sm"
+                >
+                  Leave Complaint
+                </button>
+                <button
+                  @click="openDeleteModal(task)"
+                  class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  title="Delete task"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
+
+    <!-- Leave Complaint Modal -->
+    <Modal :show="showComplaintModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Leave a Complaint</h3>
+      </template>
+      <template #body>
+        <div v-if="selectedTask">
+          <p class="text-gray-600 mb-4">
+            Task: <span class="font-semibold">{{ selectedTask.title }}</span>
+          </p>
+          <textarea
+            v-model="complaintText"
+            placeholder="Describe your complaint..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows="5"
+          />
+          <p class="text-sm text-gray-500 mt-2">Maximum 1000 characters</p>
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="handleSubmitComplaint"
+              class="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition duration-200 font-medium"
+            >
+              Submit Complaint
+            </button>
+            <button
+              @click="closeModals"
+              class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Delete Task Modal -->
+    <Modal :show="showDeleteModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Delete Task</h3>
+      </template>
+      <template #body>
+        <p class="text-gray-600">
+          Are you sure you want to delete the task
+          <span class="font-semibold">"{{ selectedTask?.title }}"</span>?
+        </p>
+        <p class="text-sm text-red-600 mt-2">This action cannot be undone.</p>
+        <div class="flex gap-3 mt-6">
+          <button
+            @click="handleDeleteTask"
+            class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 font-medium"
+          >
+            Delete Task
+          </button>
+          <button
+            @click="closeModals"
+            class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -160,8 +286,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { tasksService, type Task } from '@/services/tasksService'
+import { complaintsService, type CreateComplaintRequest } from '@/services/complaintsService'
 import { authService } from '@/services/api'
 import Toast from '@/components/Toast.vue'
+import Modal from '@/components/Modal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -170,12 +298,18 @@ const route = useRoute()
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref('')
-const activeTab = ref<'my-tasks' | 'available'>((route.query.tab as 'my-tasks' | 'available') || 'my-tasks')
+const activeTab = ref<'my-tasks' | 'available' | 'completed'>((route.query.tab as 'my-tasks' | 'available' | 'completed') || 'my-tasks')
 
 // Toast
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
+
+// Modal states
+const showComplaintModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedTask = ref<Task | null>(null)
+const complaintText = ref('')
 
 // User info
 const userId = authService.getUserId()
@@ -183,6 +317,7 @@ const userId = authService.getUserId()
 // Filtered tasks
 const availableTasks = computed(() => tasks.value.filter(t => !t.runnerId))
 const myTasks = computed(() => tasks.value.filter(t => t.runnerId === userId))
+const completedTasks = computed(() => tasks.value.filter(t => t.runnerId === userId && t.isCompleted))
 
 onMounted(() => {
   fetchTasks()
@@ -246,5 +381,58 @@ function formatDate(isoString: string): string {
 
 function isOverdue(scheduledTime: string): boolean {
   return new Date(scheduledTime) < new Date()
+}
+
+function openComplaintModal(task: Task) {
+  selectedTask.value = task
+  complaintText.value = ''
+  showComplaintModal.value = true
+}
+
+function openDeleteModal(task: Task) {
+  selectedTask.value = task
+  showDeleteModal.value = true
+}
+
+function closeModals() {
+  showComplaintModal.value = false
+  showDeleteModal.value = false
+  selectedTask.value = null
+  complaintText.value = ''
+}
+
+async function handleSubmitComplaint() {
+  if (!selectedTask.value || !complaintText.value.trim()) {
+    showNotification('Please enter a complaint', 'error')
+    return
+  }
+
+  try {
+    const request: CreateComplaintRequest = {
+      description: complaintText.value,
+      taskId: selectedTask.value.id
+    }
+    await complaintsService.createComplaint(request)
+    closeModals()
+    await fetchTasks()
+    showNotification('Complaint submitted successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to submit complaint:', err)
+    showNotification(err.response?.data?.message || 'Failed to submit complaint', 'error')
+  }
+}
+
+async function handleDeleteTask() {
+  if (!selectedTask.value) return
+  
+  try {
+    await tasksService.deleteTask(selectedTask.value.id)
+    closeModals()
+    await fetchTasks()
+    showNotification('Task deleted successfully!', 'success')
+  } catch (err: any) {
+    console.error('Failed to delete task:', err)
+    showNotification(err.response?.data?.message || 'Failed to delete task', 'error')
+  }
 }
 </script>
