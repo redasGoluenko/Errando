@@ -11,23 +11,32 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Admin: Manage Users -->
-        <router-link
-          v-if="role === 'Admin'"
-          to="/admin/users"
-          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
-        >
-          <div class="flex items-center gap-4">
-            <div class="p-3 bg-red-100 rounded-lg">
-              <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800">Manage Users</h3>
-              <p class="text-sm text-gray-600">View and manage all users</p>
+        <div v-if="role === 'Admin'" class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">All Users</h3>
+            <span class="px-2 py-1 text-sm font-medium bg-red-100 text-red-700 rounded">
+              {{ allUsers.length }}
+            </span>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div v-if="loading" class="text-gray-500 text-sm">Loading users...</div>
+            <div v-else-if="adminUsers.length === 0" class="text-gray-500 text-sm">No users</div>
+            <div v-else>
+              <div v-for="user in adminUsers" :key="user.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ user.username }}</h4>
+                <p class="text-xs text-gray-600 mt-1 truncate">{{ user.email }}</p>
+              </div>
             </div>
           </div>
-        </router-link>
+          
+          <router-link
+            to="/admin/users"
+            class="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition text-center"
+          >
+            Show All
+          </router-link>
+        </div>
 
         <!-- Client: My Tasks Preview -->
         <div v-if="role === 'Client'" class="bg-white rounded-lg shadow-md p-6">
@@ -57,43 +66,61 @@
           </router-link>
         </div>
 
-        <!-- Tasks Management (Admin) -->
-        <router-link
-          v-if="role === 'Admin'"
-          to="/tasks"
-          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
-        >
-          <div class="flex items-center gap-4">
-            <div class="p-3 bg-blue-100 rounded-lg">
-              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800">All Tasks</h3>
-              <p class="text-sm text-gray-600">View and manage all tasks</p>
+        <!-- Admin: All Tasks -->
+        <div v-if="role === 'Admin'" class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">All Tasks</h3>
+            <span class="px-2 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded">
+              {{ tasks.length }}
+            </span>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div v-if="loading" class="text-gray-500 text-sm">Loading tasks...</div>
+            <div v-else-if="adminTasks.length === 0" class="text-gray-500 text-sm">No tasks</div>
+            <div v-else>
+              <div v-for="task in adminTasks" :key="task.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ task.title }}</h4>
+                <p class="text-xs text-gray-600 mt-1 truncate">{{ task.description }}</p>
+              </div>
             </div>
           </div>
-        </router-link>
+          
+          <router-link
+            to="/tasks"
+            class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition text-center"
+          >
+            Show All
+          </router-link>
+        </div>
 
-        <!-- Complaints (Admin only) -->
-        <router-link
-          v-if="role === 'Admin'"
-          to="/admin/complaints"
-          class="block bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
-        >
-          <div class="flex items-center gap-4">
-            <div class="p-3 bg-orange-100 rounded-lg">
-              <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800">Complaints</h3>
-              <p class="text-sm text-gray-600">Review client complaints</p>
+        <!-- Admin: Complaints -->
+        <div v-if="role === 'Admin'" class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Complaints</h3>
+            <span class="px-2 py-1 text-sm font-medium bg-orange-100 text-orange-700 rounded">
+              {{ allComplaints.length }}
+            </span>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div v-if="loading" class="text-gray-500 text-sm">Loading complaints...</div>
+            <div v-else-if="adminComplaints.length === 0" class="text-gray-500 text-sm">No complaints</div>
+            <div v-else>
+              <div v-for="complaint in adminComplaints" :key="complaint.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-sm font-medium text-gray-900 truncate">{{ complaint.taskTitle }}</h4>
+                <p class="text-xs text-gray-600 mt-1 truncate">{{ complaint.clientUsername }} - {{ complaint.runnerUsername }}</p>
+              </div>
             </div>
           </div>
-        </router-link>
+          
+          <router-link
+            to="/admin/complaints"
+            class="w-full px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition text-center"
+          >
+            Show All
+          </router-link>
+        </div>
 
         <!-- Client: Completed Tasks Preview -->
         <div v-if="role === 'Client'" class="bg-white rounded-lg shadow-md p-6">
@@ -216,6 +243,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/api'
 import { tasksService, type Task } from '@/services/tasksService'
+import { userService, type User } from '@/services/userService'
+import { complaintsService, type Complaint } from '@/services/complaintsService'
 
 const router = useRouter()
 
@@ -223,6 +252,8 @@ const username = ref(authService.getUsername())
 const role = ref(authService.getRole())
 const userId = authService.getUserId()
 const tasks = ref<Task[]>([])
+const users = ref<User[]>([])
+const complaints = ref<Complaint[]>([])
 const loading = ref(false)
 
 // Computed: First 3 non-completed tasks (for clients)
@@ -265,6 +296,31 @@ const runnerCompletedTasks = computed(() =>
   allRunnerCompletedTasks.value.slice(0, 3)
 )
 
+// Computed: All users (for counting)
+const allUsers = computed(() =>
+  users.value
+)
+
+// Computed: First 3 users (for display)
+const adminUsers = computed(() =>
+  allUsers.value.slice(0, 3)
+)
+
+// Computed: First 3 tasks (for display in admin)
+const adminTasks = computed(() =>
+  tasks.value.slice(0, 3)
+)
+
+// Computed: All complaints (for counting)
+const allComplaints = computed(() =>
+  complaints.value
+)
+
+// Computed: First 3 complaints (for display)
+const adminComplaints = computed(() =>
+  allComplaints.value.slice(0, 3)
+)
+
 onMounted(() => {
   username.value = authService.getUsername()
   role.value = authService.getRole()
@@ -274,6 +330,11 @@ onMounted(() => {
   if (role.value === 'Client' || role.value === 'Runner') {
     fetchTasks()
   }
+  
+  // Fetch admin data
+  if (role.value === 'Admin') {
+    fetchAdminData()
+  }
 })
 
 async function fetchTasks() {
@@ -282,6 +343,24 @@ async function fetchTasks() {
     tasks.value = await tasksService.getAllTasks()
   } catch (err) {
     console.error('Failed to fetch tasks:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchAdminData() {
+  loading.value = true
+  try {
+    const [tasksData, usersData, complaintsData] = await Promise.all([
+      tasksService.getAllTasks(),
+      userService.getAllUsers(),
+      complaintsService.getAllComplaints()
+    ])
+    tasks.value = tasksData
+    users.value = usersData
+    complaints.value = complaintsData
+  } catch (err) {
+    console.error('Failed to fetch admin data:', err)
   } finally {
     loading.value = false
   }
