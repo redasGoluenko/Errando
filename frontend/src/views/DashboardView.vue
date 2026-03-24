@@ -336,90 +336,195 @@
         </div>
       </div>
 
-      <!-- Admin Dashboard (Original Grid) -->
-      <div v-else-if="role === 'Admin'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Admin: Manage Users -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">All Users</h3>
-            <span class="px-2 py-1 text-sm font-medium bg-red-100 text-red-700 rounded">
-              {{ allUsers.length }}
-            </span>
-          </div>
-          
-          <div class="space-y-3 mb-4">
-            <div v-if="loading" class="text-gray-500 text-sm">Loading users...</div>
-            <div v-else-if="adminUsers.length === 0" class="text-gray-500 text-sm">No users</div>
-            <div v-else>
-              <div v-for="user in adminUsers" :key="user.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 class="text-sm font-medium text-gray-900 truncate">{{ user.username }}</h4>
-                <p class="text-xs text-gray-600 mt-1 truncate">{{ user.email }}</p>
+      <!-- Admin Dashboard Layout -->
+      <div v-else-if="role === 'Admin'" class="space-y-8">
+        <!-- Quick Stats Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Total Users</p>
+                <p class="text-4xl font-bold text-red-600 mt-2">{{ allUsers.length }}</p>
+              </div>
+              <div class="bg-red-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m4 8H9m6-4H9m4 4H9m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
             </div>
           </div>
-          
-          <router-link
-            to="/admin/users"
-            class="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition text-center"
-          >
-            Show All
-          </router-link>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Total Tasks</p>
+                <p class="text-4xl font-bold text-blue-600 mt-2">{{ tasks.length }}</p>
+              </div>
+              <div class="bg-blue-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Total Complaints</p>
+                <p class="text-4xl font-bold text-orange-600 mt-2">{{ allComplaints.length }}</p>
+              </div>
+              <div class="bg-orange-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Admin: All Tasks -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">All Tasks</h3>
-            <span class="px-2 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded">
-              {{ tasks.length }}
-            </span>
-          </div>
-          
-          <div class="space-y-3 mb-4">
-            <div v-if="loading" class="text-gray-500 text-sm">Loading tasks...</div>
-            <div v-else-if="adminTasks.length === 0" class="text-gray-500 text-sm">No tasks</div>
-            <div v-else>
-              <div v-for="task in adminTasks" :key="task.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 class="text-sm font-medium text-gray-900 truncate">{{ task.title }}</h4>
-                <p class="text-xs text-gray-600 mt-1 truncate">{{ task.description }}</p>
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Users Card -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition">
+            <div class="bg-gradient-to-r from-red-500 to-red-600 px-8 py-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-2xl font-bold text-white">Users</h2>
+                  <p class="text-red-100 text-sm mt-1">Manage all users</p>
+                </div>
+                <span class="bg-red-700 px-4 py-2 text-white text-lg font-bold rounded-lg">
+                  {{ allUsers.length }}
+                </span>
               </div>
             </div>
-          </div>
-          
-          <router-link
-            to="/tasks"
-            class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition text-center"
-          >
-            Show All
-          </router-link>
-        </div>
 
-        <!-- Admin: Complaints -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">Complaints</h3>
-            <span class="px-2 py-1 text-sm font-medium bg-orange-100 text-orange-700 rounded">
-              {{ allComplaints.length }}
-            </span>
-          </div>
-          
-          <div class="space-y-3 mb-4">
-            <div v-if="loading" class="text-gray-500 text-sm">Loading complaints...</div>
-            <div v-else-if="adminComplaints.length === 0" class="text-gray-500 text-sm">No complaints</div>
-            <div v-else>
-              <div v-for="complaint in adminComplaints" :key="complaint.id" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 class="text-sm font-medium text-gray-900 truncate">{{ complaint.taskTitle }}</h4>
-                <p class="text-xs text-gray-600 mt-1 truncate">{{ complaint.clientUsername }} - {{ complaint.runnerUsername }}</p>
+            <div class="p-8">
+              <div v-if="loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-red-600"></div>
+                <p class="text-gray-600 mt-3">Loading users...</p>
               </div>
+              <div v-else-if="adminUsers.length === 0" class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m4 8H9m6-4H9m4 4H9m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-gray-600 text-lg">No users</p>
+                <p class="text-gray-500 text-sm mt-1">Create users to get started</p>
+              </div>
+              <div v-else class="space-y-3 mb-6">
+                <div v-for="user in adminUsers" :key="user.id" class="p-4 bg-gradient-to-r from-red-50 to-transparent rounded-lg border border-red-100 hover:border-red-300 transition cursor-pointer group">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <h4 class="text-sm font-semibold text-gray-900 group-hover:text-red-600 transition">{{ user.username }}</h4>
+                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ user.email }}</p>
+                    </div>
+                    <div class="ml-3 text-red-500">→</div>
+                  </div>
+                </div>
+              </div>
+
+              <router-link
+                to="/admin/users"
+                class="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition shadow-sm hover:shadow-md text-center block"
+              >
+                View All Users
+              </router-link>
             </div>
           </div>
-          
-          <router-link
-            to="/admin/complaints"
-            class="w-full px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition text-center"
-          >
-            Show All
-          </router-link>
+
+          <!-- Tasks Card -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-2xl font-bold text-white">Tasks</h2>
+                  <p class="text-blue-100 text-sm mt-1">Manage all tasks</p>
+                </div>
+                <span class="bg-blue-700 px-4 py-2 text-white text-lg font-bold rounded-lg">
+                  {{ tasks.length }}
+                </span>
+              </div>
+            </div>
+
+            <div class="p-8">
+              <div v-if="loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                <p class="text-gray-600 mt-3">Loading tasks...</p>
+              </div>
+              <div v-else-if="adminTasks.length === 0" class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p class="text-gray-600 text-lg">No tasks</p>
+                <p class="text-gray-500 text-sm mt-1">Create tasks to get started</p>
+              </div>
+              <div v-else class="space-y-3 mb-6">
+                <div v-for="task in adminTasks" :key="task.id" class="p-4 bg-gradient-to-r from-blue-50 to-transparent rounded-lg border border-blue-100 hover:border-blue-300 transition cursor-pointer group">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <h4 class="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition">{{ task.title }}</h4>
+                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ task.description }}</p>
+                    </div>
+                    <div class="ml-3 text-blue-500">→</div>
+                  </div>
+                </div>
+              </div>
+
+              <router-link
+                to="/tasks"
+                class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm hover:shadow-md text-center block"
+              >
+                View All Tasks
+              </router-link>
+            </div>
+          </div>
+
+          <!-- Complaints Card -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition">
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-2xl font-bold text-white">Complaints</h2>
+                  <p class="text-orange-100 text-sm mt-1">Review complaints</p>
+                </div>
+                <span class="bg-orange-700 px-4 py-2 text-white text-lg font-bold rounded-lg">
+                  {{ allComplaints.length }}
+                </span>
+              </div>
+            </div>
+
+            <div class="p-8">
+              <div v-if="loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600"></div>
+                <p class="text-gray-600 mt-3">Loading complaints...</p>
+              </div>
+              <div v-else-if="adminComplaints.length === 0" class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-gray-600 text-lg">No complaints</p>
+                <p class="text-gray-500 text-sm mt-1">Great! No complaints yet</p>
+              </div>
+              <div v-else class="space-y-3 mb-6">
+                <div v-for="complaint in adminComplaints" :key="complaint.id" class="p-4 bg-gradient-to-r from-orange-50 to-transparent rounded-lg border border-orange-100 hover:border-orange-300 transition cursor-pointer group">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <h4 class="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition">{{ complaint.taskTitle }}</h4>
+                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{{ complaint.clientUsername }} - {{ complaint.runnerUsername }}</p>
+                    </div>
+                    <div class="ml-3 text-orange-500">→</div>
+                  </div>
+                </div>
+              </div>
+
+              <router-link
+                to="/admin/complaints"
+                class="w-full px-6 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition shadow-sm hover:shadow-md text-center block"
+              >
+                View All Complaints
+              </router-link>
+            </div>
+          </div>
         </div>
       </div>
     </main>
