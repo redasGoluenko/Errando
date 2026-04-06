@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+
+namespace Errando.Data;
 
 public class User
 {
@@ -14,8 +17,17 @@ public class User
     public string Email { get; set; } = null!;
     
     [Required]
-    [JsonIgnore] // ← ADD THIS LINE!
+    [JsonIgnore]
     public string PasswordHash { get; set; } = null!;
     
     public string Role { get; set; } = "Client";
+
+    // Rating fields
+    [Column(TypeName = "decimal(3, 2)")]
+    public decimal AverageRating { get; set; } = 0m;
+
+    public int TotalReviews { get; set; } = 0;
+
+    // Navigation property
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

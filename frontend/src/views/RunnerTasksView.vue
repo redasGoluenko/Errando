@@ -311,6 +311,12 @@
               <!-- Action Buttons -->
               <div class="flex gap-2">
                 <button
+                  @click="openReviewModal(task)"
+                  class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm"
+                >
+                  Leave Review
+                </button>
+                <button
                   @click="openComplaintModal(task)"
                   class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition duration-200 font-medium text-sm"
                 >
@@ -394,6 +400,23 @@
         </div>
       </template>
     </Modal>
+
+    <!-- Leave Review Modal -->
+    <Modal :show="showReviewModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Leave a Review</h3>
+      </template>
+      <template #body>
+        <ReviewForm
+          v-if="selectedTask"
+          :task="selectedTask"
+          :reviewee-id="selectedTask.clientId"
+          :reviewee-username="selectedTask.clientUsername"
+          @submit="handleSubmitReview"
+          @cancel="closeModals"
+        />
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -402,9 +425,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { tasksService, type Task } from '@/services/tasksService'
 import { complaintsService, type CreateComplaintRequest } from '@/services/complaintsService'
+import { reviewService, type CreateReviewRequest } from '@/services/reviewService'
 import { authService } from '@/services/api'
 import Toast from '@/components/Toast.vue'
 import Modal from '@/components/Modal.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -423,6 +448,7 @@ const toastType = ref<'success' | 'error'>('success')
 // Modal states
 const showComplaintModal = ref(false)
 const showDeleteModal = ref(false)
+const showReviewModal = ref(false)
 const selectedTask = ref<Task | null>(null)
 const complaintText = ref('')
 
@@ -560,9 +586,15 @@ function openDeleteModal(task: Task) {
   showDeleteModal.value = true
 }
 
+function openReviewModal(task: Task) {
+  selectedTask.value = task
+  showReviewModal.value = true
+}
+
 function closeModals() {
   showComplaintModal.value = false
   showDeleteModal.value = false
+  showReviewModal.value = false
   selectedTask.value = null
   complaintText.value = ''
 }
@@ -599,6 +631,18 @@ async function handleDeleteTask() {
   } catch (err: any) {
     console.error('Failed to delete task:', err)
     showNotification(err.response?.data?.message || 'Failed to delete task', 'error')
+  }
+}
+
+async function handleSubmitReview(data: CreateReviewRequest) {
+  try {
+    await reviewService.createReview(data)
+    closeModals()
+    await fetchTasks()
+    showNotification('Review submitted successfully! Rating has been calculated.', 'success')
+  } catch (err: any) {
+    console.error('Failed to submit review:', err)
+    showNotification(err.response?.data?.message || 'Failed to submit review', 'error')
   }
 }
 </script>

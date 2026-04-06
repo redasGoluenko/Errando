@@ -16,6 +16,7 @@ namespace Errando.Data
         public DbSet<Complaint> Complaints { get; set; } = null!;
         public DbSet<Chat> Chats { get; set; } = null!;
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+        public DbSet<Review> Reviews { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -97,6 +98,25 @@ namespace Errando.Data
                 .HasOne(cm => cm.Sender)
                 .WithMany()
                 .HasForeignKey(cm => cm.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Review configurations
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.Task)
+                .WithMany()
+                .HasForeignKey(r => r.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.Reviewer)
+                .WithMany()
+                .HasForeignKey(r => r.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.Reviewee)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.RevieweeId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

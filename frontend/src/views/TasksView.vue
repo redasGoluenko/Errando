@@ -3,9 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { tasksService, type Task, type CreateTaskRequest, type UpdateTaskRequest } from '@/services/tasksService'
 import { complaintsService, type CreateComplaintRequest } from '@/services/complaintsService'
+import { reviewService, type CreateReviewRequest } from '@/services/reviewService'
 import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskForm from '@/components/TaskForm.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
 import Toast from '@/components/Toast.vue'
 
 // Route
@@ -27,6 +29,7 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showComplaintModal = ref(false)
+const showReviewModal = ref(false)
 const selectedTask = ref<Task | null>(null)
 const complaintText = ref('')
 
@@ -142,6 +145,7 @@ function closeModals() {
   showEditModal.value = false
   showDeleteModal.value = false
   showComplaintModal.value = false
+  showReviewModal.value = false
   selectedTask.value = null
   complaintText.value = ''
 }
@@ -170,6 +174,23 @@ async function handleSubmitComplaint() {
   } catch (err: any) {
     console.error('Failed to submit complaint:', err)
     showNotification(err.response?.data?.message || 'Failed to submit complaint', 'error')
+  }
+}
+
+function openReviewModal(task: Task) {
+  selectedTask.value = task
+  showReviewModal.value = true
+}
+
+async function handleSubmitReview(data: CreateReviewRequest) {
+  try {
+    await reviewService.createReview(data)
+    closeModals()
+    await fetchTasks()
+    showNotification('Review submitted successfully! Rating has been calculated.', 'success')
+  } catch (err: any) {
+    console.error('Failed to submit review:', err)
+    showNotification(err.response?.data?.message || 'Failed to submit review', 'error')
   }
 }
 
@@ -414,6 +435,15 @@ function canModifyTask(task: Task): boolean {
               Leave Complaint
             </button>
 
+            <!-- Completed Task: Leave Review Button (Client) -->
+            <button
+              v-if="task.isCompleted && userRole === 'Client'"
+              @click="openReviewModal(task)"
+              class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm"
+            >
+              Leave Review
+            </button>
+
             <!-- Edit/Delete for Active Tasks -->
             <div v-if="!task.isCompleted && canModifyTask(task)" class="flex items-center gap-2">
               <button
@@ -553,6 +583,23 @@ function canModifyTask(task: Task): boolean {
             </button>
           </div>
         </div>
+      </template>
+    </Modal>
+
+    <!-- Leave Review Modal -->
+    <Modal :show="showReviewModal" @close="closeModals">
+      <template #header>
+        <h3 class="text-xl font-semibold text-gray-900">Leave a Review</h3>
+      </template>
+      <template #body>
+        <ReviewForm
+          v-if="selectedTask"
+          :task="selectedTask"
+          :reviewee-id="selectedTask.runnerId"
+          :reviewee-username="selectedTask.runnerUsername"
+          @submit="handleSubmitReview"
+          @cancel="closeModals"
+        />
       </template>
     </Modal>
   </div>
