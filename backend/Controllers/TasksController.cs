@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
-using System.Security.Claims;  // ← ADD THIS LINE
+using Errando.DTOs;
+using System.Security.Claims;
+using System.Globalization;
 
 namespace backend.Controllers;
 
@@ -54,6 +56,11 @@ public class TasksController : ControllerBase
             clientUsername = t.Client?.Username,
             runnerId = t.RunnerId,
             runnerUsername = t.Runner?.Username,
+            location = t.Location,
+            price = t.Price,
+            isRecurring = t.IsRecurring,
+            recurringDayOfWeek = t.RecurringDayOfWeek,
+            recurringRepetitions = t.RecurringRepetitions,
             createdAt = t.CreatedAt,
             updatedAt = t.UpdatedAt,
             isCompleted = t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted)
@@ -65,7 +72,7 @@ public class TasksController : ControllerBase
     {
         var task = await _context.Tasks
             .Include(t => t.Client)
-            .Include(t => t.Runner)  // ← Make sure this is here
+            .Include(t => t.Runner)
             .Include(t => t.TaskItems)
             .FirstOrDefaultAsync(t => t.Id == id);
 
@@ -84,7 +91,12 @@ public class TasksController : ControllerBase
             clientId = task.ClientId,
             clientUsername = task.Client?.Username,
             runnerId = task.RunnerId,
-            runnerUsername = task.Runner?.Username,  // ← ADD THIS
+            runnerUsername = task.Runner?.Username,
+            location = task.Location,
+            price = task.Price,
+            isRecurring = task.IsRecurring,
+            recurringDayOfWeek = task.RecurringDayOfWeek,
+            recurringRepetitions = task.RecurringRepetitions,
             createdAt = task.CreatedAt,
             updatedAt = task.UpdatedAt,
             isCompleted = task.TaskItems.Count > 0 && task.TaskItems.All(ti => ti.IsCompleted)
@@ -92,32 +104,140 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<TodoTask>> CreateTask([FromBody] TodoTask task) // ← CHANGED
+    public async Task<ActionResult<object>> CreateTask([FromBody] CreateTaskDto createTaskDto)
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
+        // Check if user is Client/Admin
         if (userRole == "Client")
         {
-            task.ClientId = userId;
+            createTaskDto.ClientId = userId;
         }
 
-        var clientExists = await _context.Users.AnyAsync(u => u.Id == task.ClientId);
+        var clientExists = await _context.Users.AnyAsync(u => u.Id == createTaskDto.ClientId);
         if (!clientExists)
         {
             return BadRequest(new { message = "Invalid ClientId. User does not exist." });
         }
 
-        _context.Tasks.Add(task);
+        // Validate periodicity fields
+        if (createTaskDto.IsRecurring)
+        {
+            if (!createTaskDto.RecurringDayOfWeek.HasValue || createTaskDto.RecurringDayOfWeek < 0 || createTaskDto.RecurringDayOfWeek > 6)
+            {
+                return BadRequest(new { message = "Valid RecurringDayOfWeek (0-6) is required when IsRecurring is true." });
+            }
+
+            if (!createTaskDto.RecurringRepetitions.HasValue || createTaskDto.RecurringRepetitions <= 0)
+            {
+                return BadRequest(new { message = "RecurringRepetitions must be greater than 0 when IsRecurring is true." });
+            }
+        }
+
+        var createdTasks = new List<TodoTask>();
+
+        if (createTaskDto.IsRecurring && createTaskDto.RecurringRepetitions.HasValue && createTaskDto.RecurringDayOfWeek.HasValue)
+        {
+            // Create recurring tasks
+            var targetDayOfWeek = (DayOfWeek)createTaskDto.RecurringDayOfWeek.Value;
+            var currentDate = DateTime.SpecifyKind(createTaskDto.ScheduledTime.Date, DateTimeKind.Utc);
+
+            // Find the first occurrence of the target day of week
+            while (currentDate.DayOfWeek != targetDayOfWeek)
+            {
+                currentDate = currentDate.AddDays(1);
+            }
+
+            // Create tasks for each repetition
+            for (int i = 0; i < createTaskDto.RecurringRepetitions.Value; i++)
+            {
+                var newTask = new TodoTask
+                {
+                    Title = createTaskDto.Title,
+                    Description = createTaskDto.Description,
+                    ScheduledTime = currentDate.Add(createTaskDto.ScheduledTime.TimeOfDay),
+                    ClientId = createTaskDto.ClientId,
+                    Location = createTaskDto.Location,
+                    Price = createTaskDto.Price,
+                    IsRecurring = false,  // Individual tasks are not marked as recurring
+                    Status = "Pending",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Tasks.Add(newTask);
+                createdTasks.Add(newTask);
+                currentDate = currentDate.AddDays(7);  // Move to next week
+            }
+        }
+        else
+        {
+            // Create single task
+            var newTask = new TodoTask
+            {
+                Title = createTaskDto.Title,
+                Description = createTaskDto.Description,
+                ScheduledTime = createTaskDto.ScheduledTime,
+                ClientId = createTaskDto.ClientId,
+                Location = createTaskDto.Location,
+                Price = createTaskDto.Price,
+                IsRecurring = createTaskDto.IsRecurring,
+                RecurringDayOfWeek = createTaskDto.RecurringDayOfWeek,
+                RecurringRepetitions = createTaskDto.RecurringRepetitions,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Tasks.Add(newTask);
+            createdTasks.Add(newTask);
+        }
+
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
+        // Return the created tasks
+        if (createdTasks.Count == 1)
+        {
+            return CreatedAtAction(nameof(GetTask), new { id = createdTasks[0].Id }, new
+            {
+                id = createdTasks[0].Id,
+                title = createdTasks[0].Title,
+                description = createdTasks[0].Description,
+                scheduledTime = createdTasks[0].ScheduledTime,
+                status = createdTasks[0].Status,
+                clientId = createdTasks[0].ClientId,
+                location = createdTasks[0].Location,
+                price = createdTasks[0].Price,
+                isRecurring = createdTasks[0].IsRecurring,
+                createdAt = createdTasks[0].CreatedAt
+            });
+        }
+        else
+        {
+            return Ok(new
+            {
+                message = $"Created {createdTasks.Count} recurring tasks",
+                tasks = createdTasks.Select(t => new
+                {
+                    id = t.Id,
+                    title = t.Title,
+                    description = t.Description,
+                    scheduledTime = t.ScheduledTime,
+                    status = t.Status,
+                    clientId = t.ClientId,
+                    location = t.Location,
+                    price = t.Price,
+                    createdAt = t.CreatedAt
+                })
+            });
+        }
     }
 
     [HttpPatch("{id}")]
-    public async Task<ActionResult<TodoTask>> UpdateTask(int id, [FromBody] TodoTask task) // ← CHANGED
+    public async Task<ActionResult<TodoTask>> UpdateTask(int id, [FromBody] UpdateTaskDto updateTaskDto)
     {
-        if (id != task.Id)
+        if (id != updateTaskDto.Id)
         {
             return BadRequest(new { message = "ID mismatch" });
         }
@@ -136,13 +256,15 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
-        existingTask.Title = task.Title;
-        existingTask.Description = task.Description;
-        existingTask.ScheduledTime = task.ScheduledTime;
+        existingTask.Title = updateTaskDto.Title;
+        existingTask.Description = updateTaskDto.Description;
+        existingTask.ScheduledTime = updateTaskDto.ScheduledTime;
+        existingTask.Location = updateTaskDto.Location;
+        existingTask.Price = updateTaskDto.Price;
 
         if (userRole == "Admin")
         {
-            existingTask.ClientId = task.ClientId;
+            existingTask.ClientId = updateTaskDto.ClientId;
         }
 
         try

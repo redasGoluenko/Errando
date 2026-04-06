@@ -15,13 +15,54 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+// Form fields
 const title = ref('')
 const description = ref('')
 const scheduledTime = ref('')
+const location = ref('')
+const price = ref('')
+const isRecurring = ref(false)
+const recurringDayOfWeek = ref('')
+const recurringRepetitions = ref('')
 const error = ref('')
 
 const currentUserId = authService.getUserId()
 const userRole = authService.getRole()
+
+// Lithuanian cities list
+const lithuanianCities = [
+  'Vilnius',
+  'Kaunas',
+  'Klaipėda',
+  'Šiauliai',
+  'Panevėžys',
+  'Alytus',
+  'Mažeikiai',
+  'Jonava',
+  'Ukmergė',
+  'Telšiai',
+  'Visaginas',
+  'Plungė',
+  'Tauragė',
+  'Radviliškis',
+  'Gargždai',
+  'Marijampolė',
+  'Utena',
+  'Druskininkai',
+  'Anykščiai',
+  'Biržai'
+]
+
+// Days of week
+const daysOfWeek = [
+  { value: '0', label: 'Sunday' },
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' }
+]
 
 // Pre-fill form if editing
 watch(
@@ -32,6 +73,11 @@ watch(
       description.value = newTask.description
       // Convert ISO datetime to input format (YYYY-MM-DDTHH:mm)
       scheduledTime.value = newTask.scheduledTime.slice(0, 16)
+      location.value = newTask.location || ''
+      price.value = newTask.price ? newTask.price.toString() : ''
+      isRecurring.value = newTask.isRecurring || false
+      recurringDayOfWeek.value = newTask.recurringDayOfWeek ? newTask.recurringDayOfWeek.toString() : ''
+      recurringRepetitions.value = newTask.recurringRepetitions ? newTask.recurringRepetitions.toString() : ''
     }
   },
   { immediate: true }
@@ -64,12 +110,33 @@ function handleSubmit() {
     return
   }
 
+  // Validate periodicity fields
+  if (isRecurring.value) {
+    if (!recurringDayOfWeek.value) {
+      error.value = 'Day of week is required for recurring tasks'
+      return
+    }
+    if (!recurringRepetitions.value || parseInt(recurringRepetitions.value) <= 0) {
+      error.value = 'Number of repetitions must be greater than 0'
+      return
+    }
+  }
+
   // Build request data
+  const baseData = {
+    title: title.value.trim(),
+    description: description.value.trim(),
+    scheduledTime: new Date(scheduledTime.value).toISOString(),
+    location: location.value.trim() || undefined,
+    price: price.value ? parseFloat(price.value) : undefined,
+    isRecurring: isRecurring.value,
+    recurringDayOfWeek: isRecurring.value ? parseInt(recurringDayOfWeek.value) : undefined,
+    recurringRepetitions: isRecurring.value ? parseInt(recurringRepetitions.value) : undefined
+  }
+
   if (props.mode === 'create') {
     const createData: CreateTaskRequest = {
-      title: title.value.trim(),
-      description: description.value.trim(),
-      scheduledTime: new Date(scheduledTime.value).toISOString(),
+      ...baseData,
       clientId: currentUserId!, // Client creating their own task
     }
     console.log('🔵 TaskForm EMIT (create):', createData)
@@ -77,9 +144,7 @@ function handleSubmit() {
   } else {
     const updateData: UpdateTaskRequest = {
       id: props.task!.id,
-      title: title.value.trim(),
-      description: description.value.trim(),
-      scheduledTime: new Date(scheduledTime.value).toISOString(),
+      ...baseData,
       clientId: props.task!.clientId, // Keep original client
     }
     console.log('🔵 TaskForm EMIT (edit):', updateData)
@@ -141,6 +206,93 @@ const minDateTime = new Date().toISOString().slice(0, 16)
         required
       />
       <p class="text-xs text-gray-500 mt-1">Select when this task should be completed</p>
+    </div>
+
+    <!-- Location -->
+    <div>
+      <label for="location" class="block text-sm font-medium text-gray-700 mb-1">
+        Location
+      </label>
+      <select
+        id="location"
+        v-model="location"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+        <option value="">Select a city (optional)</option>
+        <option v-for="city in lithuanianCities" :key="city" :value="city">
+          {{ city }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Price -->
+    <div>
+      <label for="price" class="block text-sm font-medium text-gray-700 mb-1">
+        Price (€)
+      </label>
+      <input
+        id="price"
+        v-model="price"
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="e.g., 25.00"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+
+    <!-- Periodicity -->
+    <div class="border-t border-gray-200 pt-4">
+      <div class="flex items-center">
+        <input
+          id="isRecurring"
+          v-model="isRecurring"
+          type="checkbox"
+          class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+        />
+        <label for="isRecurring" class="ml-2 text-sm font-medium text-gray-700">
+          Repeat this task weekly
+        </label>
+      </div>
+
+      <!-- Recurring options (shown when isRecurring is true) -->
+      <div v-if="isRecurring" class="mt-4 space-y-4 bg-blue-50 p-4 rounded-lg">
+        <!-- Day of Week -->
+        <div>
+          <label for="dayOfWeek" class="block text-sm font-medium text-gray-700 mb-1">
+            Day of Week <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="dayOfWeek"
+            v-model="recurringDayOfWeek"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          >
+            <option value="">Select a day</option>
+            <option v-for="day in daysOfWeek" :key="day.value" :value="day.value">
+              {{ day.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Repetitions -->
+        <div>
+          <label for="repetitions" class="block text-sm font-medium text-gray-700 mb-1">
+            Number of Repetitions <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="repetitions"
+            v-model="recurringRepetitions"
+            type="number"
+            min="1"
+            max="52"
+            placeholder="e.g., 4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
+          <p class="text-xs text-gray-500 mt-1">Tasks will be created for the specified day of week over the next weeks</p>
+        </div>
+      </div>
     </div>
 
     <!-- Buttons -->

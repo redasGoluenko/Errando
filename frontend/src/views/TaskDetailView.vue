@@ -366,7 +366,7 @@ async function handleEditLog() {
           </div>
 
           <!-- Task Meta Info -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             <!-- Scheduled Time -->
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-center gap-3 mb-2">
@@ -404,6 +404,40 @@ async function handleEditLog() {
                 </template>
                 <span v-else class="text-gray-400 italic">Not assigned yet</span>
               </p>
+            </div>
+
+            <!-- Location -->
+            <div v-if="task.location" class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center gap-3 mb-2">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">Location</span>
+              </div>
+              <p class="text-gray-900 ml-8">{{ task.location }}</p>
+            </div>
+
+            <!-- Price -->
+            <div v-if="task.price" class="bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center gap-3 mb-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium text-gray-600">Price</span>
+              </div>
+              <p class="text-gray-900 ml-8 font-semibold text-green-600">€{{ task.price.toFixed(2) }}</p>
+            </div>
+
+            <!-- Recurring -->
+            <div v-if="task.isRecurring" class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <div class="flex items-center gap-3 mb-2">
+                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span class="text-sm font-medium text-purple-600">Recurring Task</span>
+              </div>
+              <p class="text-purple-900 ml-8 font-semibold">Yes</p>
             </div>
           </div>
         </div>

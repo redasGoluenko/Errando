@@ -5,19 +5,24 @@ export interface Task {
   title: string
   description: string
   scheduledTime: string
-  status: string  // ← ADD THIS
+  status: string
   clientId: number
   clientUsername?: string
   runnerId?: number | null
-  runnerUsername?: string | null  // ← ADD THIS
+  runnerUsername?: string | null
+  location?: string | null
+  price?: number | null
+  isRecurring: boolean
+  recurringDayOfWeek?: number | null
+  recurringRepetitions?: number | null
   runner?: {
     id: number
     username: string
     role: string
   } | null
   taskItems?: any[]
-  createdAt: string  // ← ADD THIS
-  updatedAt: string  // ← ADD THIS
+  createdAt: string
+  updatedAt: string
   isCompleted: boolean
 }
 
@@ -26,6 +31,11 @@ export interface CreateTaskRequest {
   description: string
   scheduledTime: string
   clientId: number
+  location?: string
+  price?: number
+  isRecurring?: boolean
+  recurringDayOfWeek?: number
+  recurringRepetitions?: number
 }
 
 export interface UpdateTaskRequest {
@@ -34,6 +44,11 @@ export interface UpdateTaskRequest {
   description: string
   scheduledTime: string
   clientId: number
+  location?: string
+  price?: number
+  isRecurring?: boolean
+  recurringDayOfWeek?: number
+  recurringRepetitions?: number
 }
 
 export const tasksService = {

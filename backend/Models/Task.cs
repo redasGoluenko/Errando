@@ -34,6 +34,23 @@ namespace Errando.Data
         [ForeignKey("RunnerId")]
         public User? Runner { get; set; }
 
+        // Location field - Lithuanian cities
+        [MaxLength(100)]
+        public string? Location { get; set; }
+
+        // Price field
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? Price { get; set; }
+
+        // Periodicity fields
+        public bool IsRecurring { get; set; } = false;
+
+        // Day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+        public int? RecurringDayOfWeek { get; set; }
+
+        // Number of repetitions
+        public int? RecurringRepetitions { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
