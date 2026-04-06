@@ -533,6 +533,36 @@
           </div>
         </div>
       </div>
+
+      <!-- Runner Stats Section (visible to all users) -->
+      <div class="space-y-8 mt-12 pt-8 border-t border-gray-200">
+        <!-- Runner Stats Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition">
+          <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-2xl font-bold text-white">Runner Statistics</h2>
+                <p class="text-purple-100 text-sm mt-1">Browse runner profiles and performance</p>
+              </div>
+              <svg class="w-12 h-12 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="p-8">
+            <p class="text-gray-600 mb-6">
+              View detailed statistics about all runners on the platform. See their ratings, completed tasks, and earnings.
+            </p>
+            <router-link
+              to="/runner-stats"
+              class="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition shadow-sm hover:shadow-md text-center block"
+            >
+              View Runner Stats
+            </router-link>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>

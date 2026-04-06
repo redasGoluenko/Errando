@@ -76,6 +76,12 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'Runner' }
     },
     {
+      path: '/runner-stats',
+      name: 'RunnerStats',
+      component: () => import('../views/RunnerStatsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/chatroom',
       name: 'Chatroom',
       component: () => import('../views/ChatroomView.vue'),

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using Errando.DTOs;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
@@ -262,5 +263,38 @@ public class UsersController : ControllerBase
                 return NotFound();
             throw;
         }
+    }
+
+    // GET: All runners with their stats (visible to all authenticated users)
+    [HttpGet("runners/stats")]
+    public async Task<ActionResult<IEnumerable<RunnerStatsDto>>> GetRunnerStats()
+    {
+        var runners = await _context.Users
+            .Where(u => u.Role == "Runner")
+            .ToListAsync();
+
+        var tasks = await _context.Tasks
+            .Include(t => t.TaskItems)
+            .ToListAsync();
+
+        // A task is completed if all its task items are completed
+        var completedTasks = tasks
+            .Where(t => t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted))
+            .ToList();
+
+        var runnerStats = runners.Select(runner => new RunnerStatsDto
+        {
+            Id = runner.Id,
+            Username = runner.Username,
+            Rating = runner.AverageRating,
+            TasksCompleted = completedTasks.Count(t => t.RunnerId == runner.Id),
+            MoneyEarned = completedTasks
+                .Where(t => t.RunnerId == runner.Id)
+                .Sum(t => t.Price ?? 0)
+        })
+        .OrderByDescending(r => r.Rating)
+        .ToList();
+
+        return Ok(runnerStats);
     }
 }

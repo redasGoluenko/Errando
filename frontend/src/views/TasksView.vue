@@ -593,10 +593,10 @@ function canModifyTask(task: Task): boolean {
       </template>
       <template #body>
         <ReviewForm
-          v-if="selectedTask"
+          v-if="selectedTask && selectedTask.runnerId"
           :task="selectedTask"
           :reviewee-id="selectedTask.runnerId"
-          :reviewee-username="selectedTask.runnerUsername"
+          :reviewee-username="selectedTask.runnerUsername || 'Runner'"
           @submit="handleSubmitReview"
           @cancel="closeModals"
         />

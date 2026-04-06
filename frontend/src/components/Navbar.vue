@@ -59,7 +59,7 @@ function logout() {
           <template v-if="isAuthenticated">
             <!-- Client/Admin Tasks Link -->
             <router-link v-if="userRole === 'Client' || userRole === 'Admin'" to="/tasks" class="text-gray-700 hover:text-blue-600 transition font-medium">
-              {{ userRole === 'Admin' ? 'All Tasks' : 'My Tasks' }}  <!-- ← FIX THIS LINE -->
+              {{ userRole === 'Admin' ? 'All Tasks' : 'My Tasks' }}
             </router-link>
 
             <!-- Admin Users Link -->
@@ -107,7 +107,7 @@ function logout() {
         <template v-if="isAuthenticated">
           <!-- Client/Admin Tasks Link -->
           <router-link v-if="userRole === 'Client' || userRole === 'Admin'" to="/tasks" @click="closeMobileMenu" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition font-medium">
-            {{ userRole === 'Admin' ? 'All Tasks' : 'My Tasks' }}  <!-- ← FIX THIS LINE -->
+            {{ userRole === 'Admin' ? 'All Tasks' : 'My Tasks' }}
           </router-link>
 
           <!-- Admin Users Link -->
