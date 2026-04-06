@@ -139,6 +139,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Chat Section -->
+        <DashboardChatSection />
       </div>
 
       <!-- Runner Dashboard Layout -->
@@ -334,6 +337,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Chat Section -->
+        <DashboardChatSection />
       </div>
 
       <!-- Admin Dashboard Layout -->
@@ -538,6 +544,7 @@ import { authService } from '@/services/api'
 import { tasksService, type Task } from '@/services/tasksService'
 import { userService, type User } from '@/services/userService'
 import { complaintsService, type Complaint } from '@/services/complaintsService'
+import DashboardChatSection from '@/components/DashboardChatSection.vue'
 
 const router = useRouter()
 

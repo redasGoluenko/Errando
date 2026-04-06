@@ -74,6 +74,12 @@ const router = createRouter({
       name: 'RunnerTasks',
       component: () => import('../views/RunnerTasksView.vue'),
       meta: { requiresAuth: true, role: 'Runner' }
+    },
+    {
+      path: '/chatroom',
+      name: 'Chatroom',
+      component: () => import('../views/ChatroomView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
