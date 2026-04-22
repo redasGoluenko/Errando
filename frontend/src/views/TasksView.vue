@@ -8,6 +8,7 @@ import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import ReviewForm from '@/components/ReviewForm.vue'
+import PaymentModal from '@/components/PaymentModal.vue'
 import Toast from '@/components/Toast.vue'
 
 // Route
@@ -30,6 +31,7 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showComplaintModal = ref(false)
 const showReviewModal = ref(false)
+const showPaymentModal = ref(false)
 const selectedTask = ref<Task | null>(null)
 const complaintText = ref('')
 
@@ -146,6 +148,7 @@ function closeModals() {
   showDeleteModal.value = false
   showComplaintModal.value = false
   showReviewModal.value = false
+  showPaymentModal.value = false
   selectedTask.value = null
   complaintText.value = ''
 }
@@ -192,6 +195,17 @@ async function handleSubmitReview(data: CreateReviewRequest) {
     console.error('Failed to submit review:', err)
     showNotification(err.response?.data?.message || 'Failed to submit review', 'error')
   }
+}
+
+function openPaymentModal(task: Task) {
+  selectedTask.value = task
+  showPaymentModal.value = true
+}
+
+function handlePaymentSuccess() {
+  showPaymentModal.value = false
+  fetchTasks()
+  showNotification('Payment completed successfully!', 'success')
 }
 
 // Format date for display
@@ -444,6 +458,15 @@ function canModifyTask(task: Task): boolean {
               Leave Review
             </button>
 
+            <!-- Completed Task: Pay Button (Client) -->
+            <button
+              v-if="task.isCompleted && userRole === 'Client' && task.price"
+              @click="openPaymentModal(task)"
+              class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-sm"
+            >
+              💳 Pay
+            </button>
+
             <!-- Edit/Delete for Active Tasks -->
             <div v-if="!task.isCompleted && canModifyTask(task)" class="flex items-center gap-2">
               <button
@@ -602,5 +625,14 @@ function canModifyTask(task: Task): boolean {
         />
       </template>
     </Modal>
+
+    <!-- Payment Modal -->
+    <PaymentModal
+      v-if="selectedTask"
+      :show="showPaymentModal"
+      :task="selectedTask"
+      @close="closeModals"
+      @success="handlePaymentSuccess"
+    />
   </div>
 </template>

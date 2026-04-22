@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Errando.Data;
 
 namespace Errando.Data
 {
@@ -17,6 +18,7 @@ namespace Errando.Data
         public DbSet<Chat> Chats { get; set; } = null!;
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<Review> Reviews { get; set; } = null!;
+        public DbSet<Payment> Payments { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -117,6 +119,19 @@ namespace Errando.Data
                 .HasOne(r => r.Reviewee)
                 .WithMany(u => u.Reviews)
                 .HasForeignKey(r => r.RevieweeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Payment configurations
+            modelBuilder.Entity<Payment>()
+                .HasOne(p => p.Task)
+                .WithMany()
+                .HasForeignKey(p => p.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Payment>()
+                .HasOne(p => p.Client)
+                .WithMany()
+                .HasForeignKey(p => p.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

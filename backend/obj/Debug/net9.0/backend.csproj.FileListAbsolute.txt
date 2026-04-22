@@ -203,3 +203,7 @@ C:\Users\redas\Errando\backend\bin\Debug\net9.0\backend.runtimeconfig.json
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\backend.pdb
 C:\Users\redas\Errando\backend\obj\Debug\net9.0\backend.genruntimeconfig.cache
 C:\Users\redas\Errando\backend\obj\Debug\net9.0\ref\backend.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\Newtonsoft.Json.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\Stripe.net.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll

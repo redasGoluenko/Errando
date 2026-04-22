@@ -112,6 +112,9 @@ else
     builder.Services.AddScoped<IEmailService, NoOpEmailService>();
 }
 
+// Register payment service
+builder.Services.AddScoped<IPaymentService, StripePaymentService>();
+
 var app = builder.Build();
 
 // Apply pending migrations on startup
