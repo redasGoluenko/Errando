@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
 using Errando.DTOs;
+using Errando.Services;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
@@ -17,11 +18,13 @@ public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
+    private readonly IEmailService _emailService;
 
-    public UsersController(AppDbContext context, IConfiguration config)
+    public UsersController(AppDbContext context, IConfiguration config, IEmailService emailService)
     {
         _context = context;
         _config = config;
+        _emailService = emailService;
     }
 
     // DTO'ai lokalūs – trumpam sprendimui; galima perkelti į atskirą failą
@@ -140,6 +143,17 @@ public class UsersController : ControllerBase
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
+        // Send registration confirmation email (fire and forget, but log errors)
+        try
+        {
+            await _emailService.SendRegistrationConfirmationAsync(user.Email, user.Username);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the registration
+            System.Diagnostics.Debug.WriteLine($"Email sending error: {ex}");
+        }
 
         user.PasswordHash = string.Empty; // nerodyti hash klientui
 

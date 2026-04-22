@@ -1,4 +1,5 @@
 using Errando.Data;
+using Errando.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -99,6 +100,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RunnerOrAdmin", policy => policy.RequireRole("Runner", "Admin"));
     options.AddPolicy("ClientOrAdmin", policy => policy.RequireRole("Client", "Admin"));
 });
+
+// Register email service
+var resendApiKey = builder.Configuration["Resend:ApiKey"] ?? Environment.GetEnvironmentVariable("RESEND_API_KEY");
+if (!string.IsNullOrEmpty(resendApiKey))
+{
+    builder.Services.AddScoped<IEmailService, ResendEmailService>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailService, NoOpEmailService>();
+}
 
 var app = builder.Build();
 
