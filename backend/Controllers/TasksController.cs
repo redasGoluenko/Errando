@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
 using Errando.DTOs;
+using Errando.Services;
 using System.Security.Claims;
 using System.Globalization;
 
@@ -14,10 +15,12 @@ namespace backend.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IEmailService _emailService;
 
-    public TasksController(AppDbContext context)
+    public TasksController(AppDbContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     [HttpGet]
@@ -383,9 +386,21 @@ public class TasksController : ControllerBase
 
         if (tasksToMarkExpired.Any())
         {
+            // Fetch client information for email sending
+            var clientIds = tasksToMarkExpired.Select(t => t.ClientId).Distinct().ToList();
+            var clients = await _context.Users
+                .Where(u => clientIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u);
+
             foreach (var task in tasksToMarkExpired)
             {
                 task.IsExpired = true;
+
+                // Send expiration notification email to client
+                if (clients.TryGetValue(task.ClientId, out var client) && !string.IsNullOrEmpty(client.Email) && task.ExpirationDate.HasValue)
+                {
+                    await _emailService.SendTaskExpirationAsync(client.Email, task.Title, task.ExpirationDate.Value);
+                }
             }
             await _context.SaveChangesAsync();
         }
