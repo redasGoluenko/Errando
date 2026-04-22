@@ -24,6 +24,8 @@ const price = ref('')
 const isRecurring = ref(false)
 const recurringDayOfWeek = ref('')
 const recurringRepetitions = ref('')
+const hasExpirationDate = ref(false)
+const expirationDate = ref('')
 const error = ref('')
 
 const currentUserId = authService.getUserId()
@@ -78,6 +80,8 @@ watch(
       isRecurring.value = newTask.isRecurring || false
       recurringDayOfWeek.value = newTask.recurringDayOfWeek ? newTask.recurringDayOfWeek.toString() : ''
       recurringRepetitions.value = newTask.recurringRepetitions ? newTask.recurringRepetitions.toString() : ''
+      hasExpirationDate.value = !!newTask.expirationDate
+      expirationDate.value = newTask.expirationDate ? newTask.expirationDate.slice(0, 16) : ''
     }
   },
   { immediate: true }
@@ -110,6 +114,15 @@ function handleSubmit() {
     return
   }
 
+  // Validate expiration date if set
+  if (hasExpirationDate.value && expirationDate.value) {
+    const expirationDateObj = new Date(expirationDate.value)
+    if (expirationDateObj < scheduledDate) {
+      error.value = 'Expiration date must be after the scheduled time'
+      return
+    }
+  }
+
   // Validate periodicity fields
   if (isRecurring.value) {
     if (!recurringDayOfWeek.value) {
@@ -131,7 +144,8 @@ function handleSubmit() {
     price: price.value ? parseFloat(price.value) : undefined,
     isRecurring: isRecurring.value,
     recurringDayOfWeek: isRecurring.value ? parseInt(recurringDayOfWeek.value) : undefined,
-    recurringRepetitions: isRecurring.value ? parseInt(recurringRepetitions.value) : undefined
+    recurringRepetitions: isRecurring.value ? parseInt(recurringRepetitions.value) : undefined,
+    expirationDate: hasExpirationDate.value && expirationDate.value ? new Date(expirationDate.value).toISOString() : undefined
   }
 
   if (props.mode === 'create') {
@@ -239,6 +253,36 @@ const minDateTime = new Date().toISOString().slice(0, 16)
         placeholder="e.g., 25.00"
         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
+    </div>
+
+    <!-- Expiration Date -->
+    <div class="border-t border-gray-200 pt-4">
+      <div class="flex items-center">
+        <input
+          id="hasExpirationDate"
+          v-model="hasExpirationDate"
+          type="checkbox"
+          class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+        />
+        <label for="hasExpirationDate" class="ml-2 text-sm font-medium text-gray-700">
+          Set task expiration date
+        </label>
+      </div>
+
+      <!-- Expiration date input (shown when checkbox is checked) -->
+      <div v-if="hasExpirationDate" class="mt-4 bg-blue-50 p-4 rounded-lg">
+        <label for="expirationDate" class="block text-sm font-medium text-gray-700 mb-1">
+          Expiration Date
+        </label>
+        <input
+          id="expirationDate"
+          v-model="expirationDate"
+          type="datetime-local"
+          :min="scheduledTime"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <p class="text-xs text-gray-500 mt-1">The deadline by which the task should be completed</p>
+      </div>
     </div>
 
     <!-- Periodicity -->

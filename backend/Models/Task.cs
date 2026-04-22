@@ -51,6 +51,12 @@ namespace Errando.Data
         // Number of repetitions
         public int? RecurringRepetitions { get; set; }
 
+        // Expiration date (optional) - task deadline
+        public DateTime? ExpirationDate { get; set; }
+
+        // Soft-delete flag for expired tasks
+        public bool IsExpired { get; set; } = false;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

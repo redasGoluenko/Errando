@@ -15,6 +15,8 @@ export interface Task {
   isRecurring: boolean
   recurringDayOfWeek?: number | null
   recurringRepetitions?: number | null
+  expirationDate?: string | null
+  isExpired: boolean
   runner?: {
     id: number
     username: string
@@ -36,6 +38,7 @@ export interface CreateTaskRequest {
   isRecurring?: boolean
   recurringDayOfWeek?: number
   recurringRepetitions?: number
+  expirationDate?: string
 }
 
 export interface UpdateTaskRequest {
@@ -49,6 +52,7 @@ export interface UpdateTaskRequest {
   isRecurring?: boolean
   recurringDayOfWeek?: number
   recurringRepetitions?: number
+  expirationDate?: string
 }
 
 export const tasksService = {

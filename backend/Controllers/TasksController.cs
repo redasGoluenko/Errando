@@ -43,9 +43,15 @@ public class TasksController : ControllerBase
         }
         // Admin sees all tasks (no filter)
 
+        // Filter out expired tasks (soft-delete)
+        query = query.Where(t => !t.IsExpired);
+
         var tasks = await query.Include(t => t.TaskItems).ToListAsync();
 
-        return Ok(tasks.Select(t => new
+        // Mark any tasks that have reached their expiration date
+        await MarkExpiredTasks(tasks);
+
+        return Ok(tasks.Where(t => !t.IsExpired).Select(t => new
         {
             id = t.Id,
             title = t.Title,
@@ -61,6 +67,8 @@ public class TasksController : ControllerBase
             isRecurring = t.IsRecurring,
             recurringDayOfWeek = t.RecurringDayOfWeek,
             recurringRepetitions = t.RecurringRepetitions,
+            expirationDate = t.ExpirationDate,
+            isExpired = t.IsExpired,
             createdAt = t.CreatedAt,
             updatedAt = t.UpdatedAt,
             isCompleted = t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted)
@@ -97,6 +105,8 @@ public class TasksController : ControllerBase
             isRecurring = task.IsRecurring,
             recurringDayOfWeek = task.RecurringDayOfWeek,
             recurringRepetitions = task.RecurringRepetitions,
+            expirationDate = task.ExpirationDate,
+            isExpired = task.IsExpired,
             createdAt = task.CreatedAt,
             updatedAt = task.UpdatedAt,
             isCompleted = task.TaskItems.Count > 0 && task.TaskItems.All(ti => ti.IsCompleted)
@@ -161,6 +171,7 @@ public class TasksController : ControllerBase
                     Location = createTaskDto.Location,
                     Price = createTaskDto.Price,
                     IsRecurring = false,  // Individual tasks are not marked as recurring
+                    ExpirationDate = createTaskDto.ExpirationDate,
                     Status = "Pending",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -185,6 +196,7 @@ public class TasksController : ControllerBase
                 IsRecurring = createTaskDto.IsRecurring,
                 RecurringDayOfWeek = createTaskDto.RecurringDayOfWeek,
                 RecurringRepetitions = createTaskDto.RecurringRepetitions,
+                ExpirationDate = createTaskDto.ExpirationDate,
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -210,6 +222,7 @@ public class TasksController : ControllerBase
                 location = createdTasks[0].Location,
                 price = createdTasks[0].Price,
                 isRecurring = createdTasks[0].IsRecurring,
+                expirationDate = createdTasks[0].ExpirationDate,
                 createdAt = createdTasks[0].CreatedAt
             });
         }
@@ -261,11 +274,7 @@ public class TasksController : ControllerBase
         existingTask.ScheduledTime = updateTaskDto.ScheduledTime;
         existingTask.Location = updateTaskDto.Location;
         existingTask.Price = updateTaskDto.Price;
-
-        if (userRole == "Admin")
-        {
-            existingTask.ClientId = updateTaskDto.ClientId;
-        }
+            existingTask.ExpirationDate = updateTaskDto.ExpirationDate;
 
         try
         {
@@ -360,5 +369,25 @@ public class TasksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return task;
+    }
+
+    // Helper method to mark tasks as expired if their expiration date has passed
+    private async Task MarkExpiredTasks(List<TodoTask> tasks)
+    {
+        var now = DateTime.UtcNow;
+        var tasksToMarkExpired = tasks.Where(t => 
+            t.ExpirationDate.HasValue && 
+            t.ExpirationDate <= now && 
+            !t.IsExpired
+        ).ToList();
+
+        if (tasksToMarkExpired.Any())
+        {
+            foreach (var task in tasksToMarkExpired)
+            {
+                task.IsExpired = true;
+            }
+            await _context.SaveChangesAsync();
+        }
     }
 }
