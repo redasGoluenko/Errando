@@ -26,7 +26,7 @@
         <p class="text-gray-500 text-sm mt-1">Your payments will appear here</p>
       </div>
       <div v-else class="space-y-3">
-        <div v-for="payment in payments" :key="payment.id"
+        <div v-for="payment in recentPayments" :key="payment.id"
           class="p-4 bg-gradient-to-r from-amber-50 to-transparent rounded-lg border border-amber-100 hover:border-amber-300 transition">
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -48,10 +48,12 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <router-link v-if="payments.length > 0"
+    <div v-if="payments.length > 0" class="px-8 pb-8">
+      <router-link
         to="/payments"
-        class="w-full px-6 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 transition shadow-sm hover:shadow-md text-center block mt-6"
+        class="w-full px-6 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 transition shadow-sm hover:shadow-md text-center block"
       >
         View Full History
       </router-link>
@@ -60,11 +62,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { paymentService, type Payment } from '@/services/paymentService'
 
 const payments = ref<Payment[]>([])
 const loading = ref(true)
+
+const recentPayments = computed(() => payments.value.slice(0, 3))
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
