@@ -122,5 +122,30 @@ namespace Errando.Controllers
                 return StatusCode(500, new { error = "Failed to check payment status" });
             }
         }
+
+        /// <summary>
+        /// Get all payments for the current user
+        /// </summary>
+        [HttpGet("my-payments")]
+        public async Task<IActionResult> GetMyPayments()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                    return Unauthorized("User not found");
+
+                if (!int.TryParse(userIdClaim.Value, out var userId))
+                    return Unauthorized("Invalid user ID");
+
+                var payments = await _paymentService.GetPaymentsByClientAsync(userId);
+                return Ok(payments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving client payments: {ex.Message}");
+                return StatusCode(500, new { error = "Failed to retrieve payment history" });
+            }
+        }
     }
 }

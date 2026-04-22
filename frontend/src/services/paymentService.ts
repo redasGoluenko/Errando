@@ -82,4 +82,17 @@ export const paymentService = {
       throw error
     }
   },
+
+  // Get all payments for the current user
+  async getMyPayments(): Promise<Payment[]> {
+    console.log('📤 GET MY PAYMENTS')
+    try {
+      const response = await apiClient.get<Payment[]>(`/Payments/my-payments`)
+      console.log('✅ GET MY PAYMENTS SUCCESS:', response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('❌ GET MY PAYMENTS ERROR:', error.response?.data)
+      throw error
+    }
+  },
 }

@@ -142,6 +142,9 @@
 
         <!-- Chat Section -->
         <DashboardChatSection />
+
+        <!-- Payment History Section -->
+        <PaymentHistoryCard />
       </div>
 
       <!-- Runner Dashboard Layout -->
@@ -575,6 +578,7 @@ import { tasksService, type Task } from '@/services/tasksService'
 import { userService, type User } from '@/services/userService'
 import { complaintsService, type Complaint } from '@/services/complaintsService'
 import DashboardChatSection from '@/components/DashboardChatSection.vue'
+import PaymentHistoryCard from '@/components/PaymentHistoryCard.vue'
 
 const router = useRouter()
 

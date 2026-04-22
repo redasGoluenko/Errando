@@ -11,6 +11,7 @@ namespace Errando.Services
         Task<PaymentDto> ConfirmPaymentAsync(int paymentId, string paymentIntentId);
         Task<List<PaymentDto>> GetPaymentHistoryAsync(int taskId);
         Task<bool> HasPaidAsync(int taskId, int clientId);
+        Task<List<PaymentDto>> GetPaymentsByClientAsync(int clientId);
     }
 
     public class StripePaymentService : IPaymentService
@@ -142,6 +143,16 @@ namespace Errando.Services
                     p.Status == "succeeded");
 
             return payment != null;
+        }
+
+        public async Task<List<PaymentDto>> GetPaymentsByClientAsync(int clientId)
+        {
+            var payments = await _context.Payments
+                .Where(p => p.ClientId == clientId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            return payments.Select(MapToDto).ToList();
         }
 
         private PaymentDto MapToDto(Payment payment)
