@@ -101,16 +101,24 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const isAuthenticated = authService.isAuthenticated()
 
+  // If route requires auth but user is not authenticated, redirect to login
   if (requiresAuth && !isAuthenticated) {
     next('/login')
-  } else if (to.meta.role) {
+  } 
+  // If user is not authenticated and trying to access a protected route that requires auth
+  else if (!isAuthenticated && to.path !== '/login' && to.path !== '/register' && to.path !== '/') {
+    next('/login')
+  } 
+  // Check role-based access
+  else if (to.meta.role && isAuthenticated) {
     const userRole = authService.getRole()
     if (userRole !== to.meta.role && userRole !== 'Admin') {
       next('/dashboard')
     } else {
       next()
     }
-  } else {
+  } 
+  else {
     next()
   }
 })

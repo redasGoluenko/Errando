@@ -1,27 +1,66 @@
 <!-- filepath: frontend/src/components/Navbar.vue -->
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/api'
+import { useNotificationStore } from '@/stores/notificationStore'
+import NotificationBell from './NotificationBell.vue'
 
 const router = useRouter()
+const notificationStore = useNotificationStore()
 
 const isAuthenticated = ref(authService.isAuthenticated())
 const username = ref(authService.getUsername())
 const userRole = ref(authService.getRole())
 
 const mobileMenuOpen = ref(false)
+let notificationCheckInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   isAuthenticated.value = authService.isAuthenticated()
   username.value = authService.getUsername()
   userRole.value = authService.getRole()
+  
+  // Initial check for unread messages
+  if (isAuthenticated.value) {
+    // Initialize notification tracking for this user session
+    // Load previous state from localStorage and check for new messages
+    notificationStore.initializeForCurrentUser().then(() => {
+      // Check for new messages every 30 seconds after initialization
+      notificationCheckInterval = setInterval(() => {
+        if (authService.isAuthenticated()) {
+          notificationStore.checkForUnreadMessages()
+        }
+      }, 30000)
+    })
+  }
+})
+
+onUnmounted(() => {
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval)
+  }
 })
 
 router.afterEach(() => {
   isAuthenticated.value = authService.isAuthenticated()
   username.value = authService.getUsername()
   userRole.value = authService.getRole()
+  
+  // Start polling if just logged in
+  if (isAuthenticated.value && !notificationCheckInterval) {
+    notificationStore.initializeForCurrentUser().then(() => {
+      // Start periodic checking after initialization
+      notificationCheckInterval = setInterval(() => {
+        if (authService.isAuthenticated()) {
+          notificationStore.checkForUnreadMessages()
+        }
+      }, 30000)
+    })
+  } else if (!isAuthenticated.value && notificationCheckInterval) {
+    clearInterval(notificationCheckInterval)
+    notificationCheckInterval = null
+  }
 })
 
 function toggleMobileMenu() {
@@ -38,7 +77,17 @@ function logout() {
   username.value = null
   userRole.value = null
   closeMobileMenu()
-  router.push('/login')
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval)
+    notificationCheckInterval = null
+  }
+  // Reset notification store when logging out
+  notificationStore.reset()
+  // Use router.replace to replace history and force redirect
+  router.replace('/login').catch(() => {
+    // If navigation fails, manually navigate
+    window.location.href = '/login'
+  })
 }
 </script>
 
@@ -71,6 +120,9 @@ function logout() {
             <router-link v-if="userRole === 'Runner'" to="/runner/tasks" class="text-gray-700 hover:text-blue-600 transition font-medium">
               Runner Dashboard
             </router-link>
+
+            <!-- Notification Bell (not for Admin) -->
+            <NotificationBell v-if="userRole !== 'Admin'" />
 
             <!-- User Menu -->
             <div class="flex items-center space-x-3 border-l pl-6">
@@ -118,6 +170,16 @@ function logout() {
           <!-- Runner Links -->
           <router-link v-if="userRole === 'Runner'" to="/runner/tasks" @click="closeMobileMenu" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition font-medium">
             Runner Dashboard
+          </router-link>
+
+          <!-- Messages Link (Mobile, not for Admin) -->
+          <router-link v-if="userRole !== 'Admin'" to="/chatroom" @click="closeMobileMenu" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition font-medium">
+            <div class="flex items-center justify-between">
+              <span>Messages</span>
+              <span v-if="notificationStore.unreadCount > 0" class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
+              </span>
+            </div>
           </router-link>
 
           <!-- User Info -->

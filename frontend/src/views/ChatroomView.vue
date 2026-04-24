@@ -19,7 +19,7 @@
     </div>
 
     <div class="max-w-6xl mx-auto p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 h-[calc(100vh-200px)]">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 h-[calc(100vh-200px)] auto-rows-fr">
         <!-- Sidebar - Chat List -->
         <div class="md:col-span-1 bg-white rounded-lg shadow overflow-hidden flex flex-col">
           <ChatList 
@@ -51,10 +51,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import ChatList from '../components/ChatList.vue';
 import ChatWindow from '../components/ChatWindow.vue';
 import ChatService, { type Chat } from '../services/ChatService';
+import { useNotificationStore } from '../stores/notificationStore';
+
+const notificationStore = useNotificationStore();
 
 const chats = ref<Chat[]>([]);
 const selectedChatId = ref<number | null>(null);
@@ -74,6 +77,9 @@ const loadChats = async () => {
   try {
     loading.value = true;
     chats.value = await ChatService.getChats();
+    
+    // Mark all messages as read since user is viewing the chatroom
+    await notificationStore.markAllAsRead();
     
     // If a chat is selected, refresh its messages
     if (selectedChatId.value) {
@@ -101,6 +107,12 @@ const loadChatDetails = async (chatId: number) => {
     const index = chats.value.findIndex(c => c.id === chatId);
     if (index !== -1) {
       chats.value[index] = chatDetails;
+      
+      // Mark this specific chat's messages as read
+      const lastMessage = chatDetails.messages?.[chatDetails.messages.length - 1];
+      if (lastMessage) {
+        await notificationStore.markChatAsRead(chatId, lastMessage.sentAt);
+      }
     }
   } catch (error) {
     console.error(`Failed to load chat details for ${chatId}:`, error);
@@ -178,7 +190,7 @@ onMounted(async () => {
 });
 
 // Clean up interval on unmount
-onMounted(() => {
-  return () => cleanupAutoRefresh();
+onUnmounted(() => {
+  cleanupAutoRefresh();
 });
 </script>
