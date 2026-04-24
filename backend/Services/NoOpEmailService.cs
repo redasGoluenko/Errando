@@ -20,4 +20,16 @@ public class NoOpEmailService : IEmailService
         _logger.LogWarning($"Email service not configured. Would have sent task expiration notification to {email} for task '{taskTitle}' that expired on {expirationDate}");
         return Task.FromResult(true);
     }
+
+    public Task<bool> SendTaskCreatedAsync(string email, string taskTitle, string clientUsername, DateTime scheduledTime)
+    {
+        _logger.LogWarning($"Email service not configured. Would have sent task created notification to {email} for task '{taskTitle}' created by {clientUsername} scheduled for {scheduledTime}");
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> SendTaskCompletedAsync(string email, string taskTitle, string clientUsername)
+    {
+        _logger.LogWarning($"Email service not configured. Would have sent task completed notification to {email} for task '{taskTitle}' completed by {clientUsername}");
+        return Task.FromResult(true);
+    }
 }

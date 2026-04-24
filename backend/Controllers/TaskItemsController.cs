@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Errando.Data;
+using Errando.Services;
 using System.Security.Claims;
 
 namespace Errando.Controllers
@@ -12,13 +13,15 @@ namespace Errando.Controllers
     public class TaskItemsController : ControllerBase
     {
         private readonly AppDbContext _context;
+    private readonly IEmailService _emailService;
 
-        public TaskItemsController(AppDbContext context)
-        {
-            _context = context;
-        }
+    public TaskItemsController(AppDbContext context, IEmailService emailService)
+    {
+        _context = context;
+        _emailService = emailService;
+    }
 
-        [HttpGet]
+    [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetTaskItems([FromQuery] int taskId)
         {
             var taskItems = await _context.TaskItems
@@ -100,6 +103,34 @@ namespace Errando.Controllers
             taskItem.IsCompleted = dto.IsCompleted;
 
             await _context.SaveChangesAsync();
+
+            // Check if all task items are now completed
+            if (dto.IsCompleted && taskItem.Task != null)
+            {
+                var allItemsCompleted = await _context.TaskItems
+                    .Where(ti => ti.TaskId == taskItem.TaskId)
+                    .AllAsync(ti => ti.IsCompleted);
+
+                // If all items are completed, send completion email to the client
+                if (allItemsCompleted)
+                {
+                    var task = await _context.Tasks
+                        .Include(t => t.Client)
+                        .FirstOrDefaultAsync(t => t.Id == taskItem.TaskId);
+
+                    if (task?.Client != null)
+                    {
+                        try
+                        {
+                            await _emailService.SendTaskCompletedAsync(task.Client.Email, task.Title, task.Client.Username);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error sending task completion email: {ex.Message}");
+                        }
+                    }
+                }
+            }
 
             return Ok(new
             {

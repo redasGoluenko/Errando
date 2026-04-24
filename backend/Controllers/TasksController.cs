@@ -16,11 +16,13 @@ public class TasksController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly ILogger<TasksController> _logger;
 
-    public TasksController(AppDbContext context, IEmailService emailService)
+    public TasksController(AppDbContext context, IEmailService emailService, ILogger<TasksController> logger)
     {
         _context = context;
         _emailService = emailService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -210,6 +212,29 @@ public class TasksController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+        // Send email notification to the client(s) who created the task
+        var client = await _context.Users.FirstOrDefaultAsync(u => u.Id == createTaskDto.ClientId);
+        if (client != null)
+        {
+            foreach (var task in createdTasks)
+            {
+                try
+                {
+                    _logger.LogInformation($"[DEBUG] Sending task created email to {client.Email} for task '{task.Title}'");
+                    var result = await _emailService.SendTaskCreatedAsync(client.Email, task.Title, client.Username, task.ScheduledTime);
+                    _logger.LogInformation($"[DEBUG] Email send result: {result}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"[DEBUG] Exception sending task created email to {client.Email}: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            _logger.LogWarning($"[DEBUG] Client with ID {createTaskDto.ClientId} not found!");
+        }
 
         // Return the created tasks
         if (createdTasks.Count == 1)
