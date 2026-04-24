@@ -12,6 +12,7 @@ public class CreateTaskDto
     public int? RecurringDayOfWeek { get; set; }
     public int? RecurringRepetitions { get; set; }
     public DateTime? ExpirationDate { get; set; }
+    public string? PhotoUrl { get; set; } // Optional photo URL/path for task context
 }
 
 public class UpdateTaskDto
@@ -27,6 +28,7 @@ public class UpdateTaskDto
     public int? RecurringDayOfWeek { get; set; }
     public int? RecurringRepetitions { get; set; }
     public DateTime? ExpirationDate { get; set; }
+    public string? PhotoUrl { get; set; }
 }
 
 public class TaskDto
@@ -47,6 +49,7 @@ public class TaskDto
     public int? RecurringRepetitions { get; set; }
     public DateTime? ExpirationDate { get; set; }
     public bool IsExpired { get; set; }
+    public string? PhotoUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsCompleted { get; set; }

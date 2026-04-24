@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import type { Task, CreateTaskRequest, UpdateTaskRequest } from '@/services/tasksService'
 import { authService } from '@/services/api'
+import apiClient from '@/services/api'
 
 interface Props {
   task?: Task
@@ -26,6 +27,9 @@ const recurringDayOfWeek = ref('')
 const recurringRepetitions = ref('')
 const hasExpirationDate = ref(false)
 const expirationDate = ref('')
+const photoUrl = ref('')
+const photoPreview = ref('')
+const uploading = ref(false)
 const error = ref('')
 
 const currentUserId = authService.getUserId()
@@ -66,6 +70,61 @@ const daysOfWeek = [
   { value: '6', label: 'Saturday' }
 ]
 
+// Handle photo upload
+async function handlePhotoUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  
+  if (!file) return
+
+  // Validate file size (max 1 MB)
+  if (file.size > 1 * 1024 * 1024) {
+    error.value = 'Photo must be less than 1 MB'
+    return
+  }
+
+  // Validate file type
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+    error.value = 'Photo must be JPG, PNG, WebP, or GIF'
+    return
+  }
+
+  // Show preview
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    photoPreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+
+  // Upload to backend
+  uploading.value = true
+  error.value = ''
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await apiClient.post('/tasks/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    photoUrl.value = response.data.photoUrl
+  } catch (err: any) {
+    console.error('Photo upload failed:', err)
+    error.value = err.response?.data?.message || 'Failed to upload photo'
+    photoPreview.value = ''
+  } finally {
+    uploading.value = false
+  }
+}
+
+function removePhoto() {
+  photoUrl.value = ''
+  photoPreview.value = ''
+}
+
 // Pre-fill form if editing
 watch(
   () => props.task,
@@ -82,6 +141,8 @@ watch(
       recurringRepetitions.value = newTask.recurringRepetitions ? newTask.recurringRepetitions.toString() : ''
       hasExpirationDate.value = !!newTask.expirationDate
       expirationDate.value = newTask.expirationDate ? newTask.expirationDate.slice(0, 16) : ''
+      photoUrl.value = newTask.photoUrl || ''
+      photoPreview.value = newTask.photoUrl || ''
     }
   },
   { immediate: true }
@@ -142,6 +203,7 @@ function handleSubmit() {
     scheduledTime: new Date(scheduledTime.value).toISOString(),
     location: location.value.trim() || undefined,
     price: price.value ? parseFloat(price.value) : undefined,
+    photoUrl: photoUrl.value || undefined,
     isRecurring: isRecurring.value,
     recurringDayOfWeek: isRecurring.value ? parseInt(recurringDayOfWeek.value) : undefined,
     recurringRepetitions: isRecurring.value ? parseInt(recurringRepetitions.value) : undefined,
@@ -253,6 +315,50 @@ const minDateTime = new Date().toISOString().slice(0, 16)
         placeholder="e.g., 25.00"
         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
+    </div>
+
+    <!-- Photo Upload -->
+    <div class="border-t border-gray-200 pt-4">
+      <label class="block text-sm font-medium text-gray-700 mb-3">
+        Task Photo (Optional)
+      </label>
+      <p class="text-xs text-gray-500 mb-3">Add a photo for context (JPG, PNG, WebP, GIF - max 1 MB)</p>
+      
+      <!-- Photo Preview -->
+      <div v-if="photoPreview" class="mb-4">
+        <div class="relative inline-block">
+          <img :src="photoPreview" alt="Task photo preview" class="h-40 w-40 object-cover rounded-lg border border-gray-300" />
+          <button
+            type="button"
+            @click="removePhoto"
+            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- File Upload Input -->
+      <div v-if="!photoPreview" class="flex items-center justify-center w-full">
+        <label class="flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 bg-gray-50 p-6">
+          <div class="flex flex-col items-center justify-center pt-2 pb-2">
+            <svg class="w-8 h-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <p class="text-sm text-gray-500">
+              <span v-if="uploading" class="text-blue-600">Uploading...</span>
+              <span v-else>Click to upload or drag and drop</span>
+            </p>
+          </div>
+          <input
+            type="file"
+            class="hidden"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            @change="handlePhotoUpload"
+            :disabled="uploading"
+          />
+        </label>
+      </div>
     </div>
 
     <!-- Expiration Date -->

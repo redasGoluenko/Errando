@@ -16,12 +16,14 @@ public class TasksController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IImageStorageService _imageStorageService;
     private readonly ILogger<TasksController> _logger;
 
-    public TasksController(AppDbContext context, IEmailService emailService, ILogger<TasksController> logger)
+    public TasksController(AppDbContext context, IEmailService emailService, IImageStorageService imageStorageService, ILogger<TasksController> logger)
     {
         _context = context;
         _emailService = emailService;
+        _imageStorageService = imageStorageService;
         _logger = logger;
     }
 
@@ -74,6 +76,7 @@ public class TasksController : ControllerBase
             recurringRepetitions = t.RecurringRepetitions,
             expirationDate = t.ExpirationDate,
             isExpired = t.IsExpired,
+            photoUrl = t.PhotoUrl,
             createdAt = t.CreatedAt,
             updatedAt = t.UpdatedAt,
             isCompleted = t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted)
@@ -112,6 +115,7 @@ public class TasksController : ControllerBase
             recurringRepetitions = task.RecurringRepetitions,
             expirationDate = task.ExpirationDate,
             isExpired = task.IsExpired,
+            photoUrl = task.PhotoUrl,
             createdAt = task.CreatedAt,
             updatedAt = task.UpdatedAt,
             isCompleted = task.TaskItems.Count > 0 && task.TaskItems.All(ti => ti.IsCompleted)
@@ -175,6 +179,7 @@ public class TasksController : ControllerBase
                     ClientId = createTaskDto.ClientId,
                     Location = createTaskDto.Location,
                     Price = createTaskDto.Price,
+                    PhotoUrl = createTaskDto.PhotoUrl,
                     IsRecurring = false,  // Individual tasks are not marked as recurring
                     ExpirationDate = createTaskDto.ExpirationDate,
                     Status = "Pending",
@@ -198,6 +203,7 @@ public class TasksController : ControllerBase
                 ClientId = createTaskDto.ClientId,
                 Location = createTaskDto.Location,
                 Price = createTaskDto.Price,
+                PhotoUrl = createTaskDto.PhotoUrl,
                 IsRecurring = createTaskDto.IsRecurring,
                 RecurringDayOfWeek = createTaskDto.RecurringDayOfWeek,
                 RecurringRepetitions = createTaskDto.RecurringRepetitions,
@@ -341,6 +347,36 @@ public class TasksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPost("upload-photo")]
+    [Authorize]
+    public async Task<ActionResult<object>> UploadTaskPhoto(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file provided" });
+        }
+
+        try
+        {
+            using (var stream = file.OpenReadStream())
+            {
+                var photoUrl = await _imageStorageService.UploadImageAsync(stream, file.FileName, file.ContentType);
+                
+                if (photoUrl == null)
+                {
+                    return BadRequest(new { message = "Failed to upload image. Check file size (max 1MB) and format (JPG, PNG, WebP, GIF)" });
+                }
+
+                return Ok(new { photoUrl });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading task photo");
+            return StatusCode(500, new { message = "Error uploading photo" });
+        }
     }
 
     private bool TaskExists(int id)

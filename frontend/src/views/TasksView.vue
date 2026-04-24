@@ -363,6 +363,15 @@ function canModifyTask(task: Task): boolean {
 
             <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ task.description }}</p>
 
+            <!-- Task Photo -->
+            <div v-if="task.photoUrl" class="mt-4">
+              <img
+                :src="`http://localhost:5064${task.photoUrl}`"
+                :alt="task.title"
+                class="w-full h-40 object-cover rounded-md border border-gray-200"
+              />
+            </div>
+
             <!-- Task Meta -->
             <div class="mt-4 space-y-2">
               <div class="flex items-center text-sm text-gray-500">

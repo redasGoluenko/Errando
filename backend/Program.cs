@@ -115,6 +115,9 @@ else
 // Register payment service
 builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 
+// Register image storage service
+builder.Services.AddScoped<IImageStorageService, LocalImageStorageService>();
+
 var app = builder.Build();
 
 // Apply pending migrations on startup
@@ -131,6 +134,9 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"❌ Error applying migrations: {ex.Message}");
     }
 }
+
+// Enable static file serving for uploaded images
+app.UseStaticFiles();
 
 // IMPORTANT: CORS must come BEFORE Authentication and Authorization
 app.UseCors("AllowFrontend");  // ← This line MUST be here

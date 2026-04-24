@@ -79,6 +79,15 @@
 
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
 
+              <!-- Task Photo -->
+              <div v-if="task.photoUrl" class="mb-4">
+                <img
+                  :src="`http://localhost:5064${task.photoUrl}`"
+                  :alt="task.title"
+                  class="w-full h-40 object-cover rounded-md border border-gray-200"
+                />
+              </div>
+
               <!-- Task Meta Info -->
               <div class="space-y-2 mb-4 text-sm text-gray-600">
                 <div class="flex items-center">
@@ -218,6 +227,15 @@
 
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
 
+              <!-- Task Photo -->
+              <div v-if="task.photoUrl" class="mb-4">
+                <img
+                  :src="`http://localhost:5064${task.photoUrl}`"
+                  :alt="task.title"
+                  class="w-full h-40 object-cover rounded-md border border-gray-200"
+                />
+              </div>
+
               <!-- Task Meta Info -->
               <div class="space-y-2 mb-4 text-sm text-gray-600">
                 <div class="flex items-center">
@@ -284,6 +302,15 @@
               </div>
 
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
+
+              <!-- Task Photo -->
+              <div v-if="task.photoUrl" class="mb-4">
+                <img
+                  :src="`http://localhost:5064${task.photoUrl}`"
+                  :alt="task.title"
+                  class="w-full h-40 object-cover rounded-md border border-gray-200"
+                />
+              </div>
 
               <!-- Task Meta Info -->
               <div class="space-y-2 mb-4 text-sm text-gray-600">

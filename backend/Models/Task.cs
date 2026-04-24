@@ -57,6 +57,10 @@ namespace Errando.Data
         // Soft-delete flag for expired tasks
         public bool IsExpired { get; set; } = false;
 
+        // Optional photo URL for task context
+        [MaxLength(500)]
+        public string? PhotoUrl { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

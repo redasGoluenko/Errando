@@ -349,6 +349,15 @@ async function handleEditLog() {
             </button>
           </div>
 
+          <!-- Task Photo -->
+          <div v-if="task.photoUrl" class="mb-6 mt-6">
+            <img
+              :src="`http://localhost:5064${task.photoUrl}`"
+              :alt="task.title"
+              class="max-w-md h-auto rounded-lg shadow-md border border-gray-200"
+            />
+          </div>
+
           <!-- Progress Bar -->
           <div class="mt-6">
             <div class="flex items-center justify-between mb-2">

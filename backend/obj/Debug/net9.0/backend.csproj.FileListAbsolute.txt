@@ -207,3 +207,4 @@ C:\Users\redas\Errando\backend\bin\Debug\net9.0\Newtonsoft.Json.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\Stripe.net.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\backend.staticwebassets.runtime.json
