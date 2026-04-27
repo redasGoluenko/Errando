@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { tasksService, type Task, type CreateTaskRequest, type UpdateTaskRequest } from '@/services/tasksService'
 import { complaintsService, type CreateComplaintRequest } from '@/services/complaintsService'
 import { reviewService, type CreateReviewRequest } from '@/services/reviewService'
+import { paymentService } from '@/services/paymentService'
 import { authService } from '@/services/api'
 import Modal from '@/components/Modal.vue'
 import TaskForm from '@/components/TaskForm.vue'
@@ -19,6 +20,7 @@ const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref('')
 const activeTab = ref<'all' | 'completed'>((route.query.tab as 'all' | 'completed') || 'all')
+const paidTasks = ref<Set<number>>(new Set())
 
 // Toast state
 const showToast = ref(false)
@@ -72,11 +74,32 @@ async function fetchTasks() {
   error.value = ''
   try {
     tasks.value = await tasksService.getAllTasks()
+    // Check which completed tasks have been paid
+    await checkPaidStatus()
   } catch (err: any) {
     console.error('Failed to fetch tasks:', err)
     error.value = err.response?.data?.message || 'Failed to load tasks'
   } finally {
     loading.value = false
+  }
+}
+
+// Check payment status for all completed tasks
+async function checkPaidStatus() {
+  if (userRole !== 'Client') return
+  
+  const completedTasks = tasks.value.filter(t => t.isCompleted && t.price)
+  paidTasks.value.clear()
+  
+  for (const task of completedTasks) {
+    try {
+      const hasPaid = await paymentService.hasPaid(task.id)
+      if (hasPaid) {
+        paidTasks.value.add(task.id)
+      }
+    } catch (err) {
+      console.error(`Error checking payment status for task ${task.id}:`, err)
+    }
   }
 }
 
@@ -204,7 +227,7 @@ function openPaymentModal(task: Task) {
 
 function handlePaymentSuccess() {
   showPaymentModal.value = false
-  fetchTasks()
+  checkPaidStatus()
   showNotification('Payment completed successfully!', 'success')
 }
 
@@ -235,6 +258,11 @@ function canModifyTask(task: Task): boolean {
   if (userRole === 'Admin') return true
   if (userRole === 'Client' && task.clientId === userId) return true
   return false
+}
+
+// Check if task has been paid
+function isTaskPaid(taskId: number): boolean {
+  return paidTasks.value.has(taskId)
 }
 </script>
 
@@ -286,7 +314,7 @@ function canModifyTask(task: Task): boolean {
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="tasks.length === 0" class="bg-white rounded-lg shadow-md p-12 text-center">
+      <div v-else-if="filteredTasks.length === 0 && activeTab === 'all'" class="bg-white rounded-lg shadow-md p-12 text-center">
         <svg
           class="mx-auto h-16 w-16 text-gray-400"
           fill="none"
@@ -311,8 +339,8 @@ function canModifyTask(task: Task): boolean {
         </button>
       </div>
 
-      <!-- Empty state when no tasks match the filter -->
-      <div v-if="filteredTasks.length === 0 && activeTab === 'completed'" class="bg-white rounded-lg shadow-md p-12 text-center">
+      <!-- Empty state when no completed tasks match the filter -->
+      <div v-else-if="filteredTasks.length === 0 && activeTab === 'completed'" class="bg-white rounded-lg shadow-md p-12 text-center">
         <svg
           class="mx-auto h-16 w-16 text-gray-400"
           fill="none"
@@ -469,12 +497,20 @@ function canModifyTask(task: Task): boolean {
 
             <!-- Completed Task: Pay Button (Client) -->
             <button
-              v-if="task.isCompleted && userRole === 'Client' && task.price"
+              v-if="task.isCompleted && userRole === 'Client' && task.price && !isTaskPaid(task.id)"
               @click="openPaymentModal(task)"
               class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-sm"
             >
               💳 Pay
             </button>
+
+            <!-- Completed Task: Paid Badge (Client) -->
+            <div
+              v-if="task.isCompleted && userRole === 'Client' && task.price && isTaskPaid(task.id)"
+              class="flex-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium text-sm text-center"
+            >
+              ✓ Paid
+            </div>
 
             <!-- Edit/Delete for Active Tasks -->
             <div v-if="!task.isCompleted && canModifyTask(task)" class="flex items-center gap-2">
