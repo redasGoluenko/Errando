@@ -94,7 +94,23 @@ const loadParticipants = async () => {
   try {
     loading.value = true;
     error.value = null;
-    participants.value = await ChatService.getChatParticipants();
+    
+    // Get all potential participants
+    const allParticipants = await ChatService.getChatParticipants();
+    
+    // Get existing chats to filter out users already chatting with
+    const existingChats = await ChatService.getChats();
+    const existingChatUserIds = new Set<number>();
+    
+    existingChats.forEach(chat => {
+      if (chat.user1Id !== null) existingChatUserIds.add(chat.user1Id);
+      if (chat.user2Id !== null) existingChatUserIds.add(chat.user2Id);
+    });
+    
+    // Filter out users we already have chats with
+    participants.value = allParticipants.filter(
+      user => !existingChatUserIds.has(user.id)
+    );
   } catch (err) {
     error.value = 'Failed to load participants. Please try again.';
     console.error('Failed to load participants:', err);
