@@ -392,11 +392,12 @@ function isTaskPaid(taskId: number): boolean {
             <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ task.description }}</p>
 
             <!-- Task Photo -->
-            <div v-if="task.photoUrl" class="mt-4">
+            <div class="mt-4 h-40 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
               <img
+                v-if="task.photoUrl"
                 :src="`http://localhost:5064${task.photoUrl}`"
                 :alt="task.title"
-                class="w-full h-40 object-cover rounded-md border border-gray-200"
+                class="w-full h-full object-cover"
               />
             </div>
 
