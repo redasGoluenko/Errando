@@ -362,13 +362,20 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
-        // Soft delete: mark as deleted for this user but keep in database for the other party
+        // Clients can only delete tasks they have paid for
         if (userRole == "Client")
         {
+            var payment = await _context.Payments.FirstOrDefaultAsync(p => p.TaskId == id && p.Status == "succeeded");
+            if (payment == null)
+            {
+                return BadRequest(new { message = "You can only delete tasks after payment has been completed." });
+            }
+            // Only proceed with soft delete after payment is verified
             task.IsDeletedByClient = true;
         }
         else if (userRole == "Runner")
         {
+            // Runners can delete tasks freely
             task.IsDeletedByRunner = true;
         }
 

@@ -19,6 +19,7 @@ const route = useRoute()
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref('')
+const deletingTaskId = ref<number | null>(null)
 const activeTab = ref<'all' | 'completed'>((route.query.tab as 'all' | 'completed') || 'all')
 const paidTasks = ref<Set<number>>(new Set())
 
@@ -151,17 +152,22 @@ function openDeleteModal(task: Task) {
 async function handleDeleteTask() {
   if (!selectedTask.value) return
 
+  deletingTaskId.value = selectedTask.value.id
+
   try {
     await tasksService.deleteTask(selectedTask.value.id)
+    deletingTaskId.value = null
     showDeleteModal.value = false
     const deletedTitle = selectedTask.value.title
     selectedTask.value = null
     await fetchTasks()
     showNotification(`Task "${deletedTitle}" deleted successfully!`, 'success')
   } catch (err: any) {
+    deletingTaskId.value = null
+    showDeleteModal.value = false
+    selectedTask.value = null
     console.error('Failed to delete task:', err)
     const errorMessage = err.response?.data?.message || 'Failed to delete task'
-    error.value = errorMessage
     showNotification(errorMessage, 'error')
   }
 }
@@ -607,9 +613,10 @@ function isTaskPaid(taskId: number): boolean {
         <div class="flex gap-3 mt-6">
           <button
             @click="handleDeleteTask"
-            class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200 font-medium"
+            :disabled="deletingTaskId === selectedTask?.id"
+            class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition duration-200 font-medium"
           >
-            Delete Task
+            {{ deletingTaskId === selectedTask?.id ? 'Deleting...' : 'Delete Task' }}
           </button>
           <button
             @click="closeModals"
