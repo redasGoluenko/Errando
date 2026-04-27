@@ -264,9 +264,8 @@ public class ChatsController : ControllerBase
     /// <summary>
     /// Get chat participants (users relevant to the current user based on task assignments)
     /// Returns potential chat participants based on:
-    /// - For Clients: Runners assigned to their tasks
-    /// - For Runners: Clients whose tasks are assigned to them
-    /// </summary>
+    /// - For Clients: Runners assigned to their ACTIVE tasks, or Admin if no active runners are assigned
+    /// - For Runners: Clients whose ACTIVE tasks are assigned to them    /// A task is considered incomplete if it has no TaskItems or if not all of its TaskItems are completed    /// </summary>
     [HttpGet("participants")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetChatParticipants()
     {
@@ -277,20 +276,38 @@ public class ChatsController : ControllerBase
 
         if (userRole == "Client")
         {
-            // Get all runners assigned to the client's tasks
+            // Get all runners assigned to the client's ACTIVE (incomplete) tasks
+            // A task is incomplete if it has TaskItems but not all are completed, or if it has no TaskItems
             var runnerIds = await _context.Tasks
                 .Where(t => t.ClientId == currentUserId && t.RunnerId.HasValue)
+                .Where(t => t.TaskItems.Count == 0 || !t.TaskItems.All(ti => ti.IsCompleted))
                 .Select(t => t.RunnerId.Value)
                 .Distinct()
                 .ToListAsync();
 
             participantIds = new HashSet<int>(runnerIds);
+
+            // If no active runners are assigned, only allow chat with admin
+            if (participantIds.Count == 0)
+            {
+                var adminId = await _context.Users
+                    .Where(u => u.Role == "Admin")
+                    .Select(u => u.Id)
+                    .FirstOrDefaultAsync();
+
+                if (adminId > 0)
+                {
+                    participantIds.Add(adminId);
+                }
+            }
         }
         else if (userRole == "Runner")
         {
-            // Get all clients whose tasks are assigned to this runner
+            // Get all clients whose ACTIVE (incomplete) tasks are assigned to this runner
+            // A task is incomplete if it has TaskItems but not all are completed, or if it has no TaskItems
             var clientIds = await _context.Tasks
                 .Where(t => t.RunnerId == currentUserId)
+                .Where(t => t.TaskItems.Count == 0 || !t.TaskItems.All(ti => ti.IsCompleted))
                 .Select(t => t.ClientId)
                 .Distinct()
                 .ToListAsync();
@@ -300,7 +317,7 @@ public class ChatsController : ControllerBase
         // Admin can see all users
 
         var participants = await _context.Users
-            .Where(u => u.Id != currentUserId && (participantIds.Count == 0 || participantIds.Contains(u.Id)))
+            .Where(u => u.Id != currentUserId && (userRole == "Admin" || participantIds.Contains(u.Id)))
             .Select(u => new UserDto
             {
                 Id = u.Id,

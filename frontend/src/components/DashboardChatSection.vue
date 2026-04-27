@@ -84,6 +84,7 @@ const getChatPartnerType = (): string => {
   const role = authStore.role;
   if (role === 'Client') return 'Runners';
   if (role === 'Runner') return 'Clients';
+  if (role === 'Admin') return 'System Users';
   return 'Users';
 };
 

@@ -535,6 +535,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Chat Section -->
+        <DashboardChatSection />
       </div>
 
       <!-- Runner Stats Section (visible to all users) -->
