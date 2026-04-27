@@ -215,7 +215,8 @@ const deleteChat = async () => {
     });
 
     if (response.ok) {
-      alert('Chat deleted successfully. Please reload the page.');
+      // Automatically reload the page after successful deletion
+      window.location.reload();
     } else {
       alert('Failed to delete chat');
     }
