@@ -66,7 +66,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   /**
    * Check for unread messages across all chats
-   * A chat is considered to have unread messages if it has a newer message than we've previously seen
+   * A chat is considered to have unread messages if we haven't seen its last message yet
    */
   const checkForUnreadMessages = async () => {
     if (isChecking.value) return
@@ -83,8 +83,10 @@ export const useNotificationStore = defineStore('notification', () => {
         if (lastMessage) {
           const previousSeenTime = lastSeenMessageTime.value[chat.id]
           
-          // Only count as unread if we HAVE a previous timestamp and there's a newer message
-          if (previousSeenTime && new Date(lastMessage.sentAt) > new Date(previousSeenTime)) {
+          // Count as unread if:
+          // 1. We haven't seen any messages in this chat yet (no previousSeenTime), OR
+          // 2. There's a newer message than we've previously seen
+          if (!previousSeenTime || new Date(lastMessage.sentAt) > new Date(previousSeenTime)) {
             newUnreadCount++
             lastSeenMessageTime.value[chat.id] = lastMessage.sentAt
             hasChanges = true
