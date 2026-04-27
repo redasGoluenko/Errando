@@ -61,6 +61,10 @@ namespace Errando.Data
         [MaxLength(500)]
         public string? PhotoUrl { get; set; }
 
+        // Soft delete flags - allow users to hide completed tasks while other party retains access
+        public bool IsDeletedByClient { get; set; } = false;
+        public bool IsDeletedByRunner { get; set; } = false;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

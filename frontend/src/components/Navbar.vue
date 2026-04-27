@@ -121,8 +121,8 @@ function logout() {
               Runner Dashboard
             </router-link>
 
-            <!-- Notification Bell (not for Admin) -->
-            <NotificationBell v-if="userRole !== 'Admin'" />
+            <!-- Notification Bell -->
+            <NotificationBell />
 
             <!-- User Menu -->
             <div class="flex items-center space-x-3 border-l pl-6">

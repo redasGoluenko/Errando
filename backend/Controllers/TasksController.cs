@@ -40,13 +40,13 @@ public class TasksController : ControllerBase
         // Filter based on role
         if (userRole == "Client")
         {
-            // Clients see only their own tasks
-            query = query.Where(t => t.ClientId == userId);
+            // Clients see only their own tasks, excluding ones they've deleted
+            query = query.Where(t => t.ClientId == userId && !t.IsDeletedByClient);
         }
         else if (userRole == "Runner")
         {
-            // Runners see unassigned tasks + their assigned tasks
-            query = query.Where(t => t.RunnerId == null || t.RunnerId == userId);
+            // Runners see unassigned tasks + their assigned tasks, excluding ones they've deleted
+            query = query.Where(t => (t.RunnerId == null || t.RunnerId == userId) && !t.IsDeletedByRunner);
         }
         // Admin sees all tasks (no filter)
 
@@ -86,6 +86,9 @@ public class TasksController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<object>> GetTask(int id)
     {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
         var task = await _context.Tasks
             .Include(t => t.Client)
             .Include(t => t.Runner)
@@ -93,6 +96,17 @@ public class TasksController : ControllerBase
             .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null)
+        {
+            return NotFound();
+        }
+
+        // Check if current user has soft-deleted this task
+        if (userRole == "Client" && task.IsDeletedByClient)
+        {
+            return NotFound();
+        }
+
+        if (userRole == "Runner" && task.IsDeletedByRunner)
         {
             return NotFound();
         }
@@ -329,7 +343,7 @@ public class TasksController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.Tasks.Include(t => t.TaskItems).FirstOrDefaultAsync(t => t.Id == id);
         if (task == null)
         {
             return NotFound(new { message = "Task not found" });
@@ -343,7 +357,22 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
-        _context.Tasks.Remove(task);
+        if (userRole == "Runner" && task.RunnerId != userId)
+        {
+            return Forbid();
+        }
+
+        // Soft delete: mark as deleted for this user but keep in database for the other party
+        if (userRole == "Client")
+        {
+            task.IsDeletedByClient = true;
+        }
+        else if (userRole == "Runner")
+        {
+            task.IsDeletedByRunner = true;
+        }
+
+        _context.Tasks.Update(task);
         await _context.SaveChangesAsync();
 
         return NoContent();

@@ -160,8 +160,9 @@ async function handleDeleteTask() {
     showNotification(`Task "${deletedTitle}" deleted successfully!`, 'success')
   } catch (err: any) {
     console.error('Failed to delete task:', err)
-    error.value = err.response?.data?.message || 'Failed to delete task'
-    showNotification('Failed to delete task', 'error')
+    const errorMessage = err.response?.data?.message || 'Failed to delete task'
+    error.value = errorMessage
+    showNotification(errorMessage, 'error')
   }
 }
 
