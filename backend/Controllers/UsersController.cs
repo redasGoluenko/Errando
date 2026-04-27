@@ -311,4 +311,36 @@ public class UsersController : ControllerBase
 
         return Ok(runnerStats);
     }
+
+    /// <summary>
+    /// Get statistics for all clients (rating and completed tasks)
+    /// </summary>
+    [HttpGet("clients/stats")]
+    public async Task<ActionResult<IEnumerable<ClientStatsDto>>> GetClientStats()
+    {
+        var clients = await _context.Users
+            .Where(u => u.Role == "Client")
+            .ToListAsync();
+
+        var tasks = await _context.Tasks
+            .Include(t => t.TaskItems)
+            .ToListAsync();
+
+        // A task is completed if all its task items are completed
+        var completedTasks = tasks
+            .Where(t => t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted))
+            .ToList();
+
+        var clientStats = clients.Select(client => new ClientStatsDto
+        {
+            Id = client.Id,
+            Username = client.Username,
+            Rating = client.AverageRating,
+            TasksCompleted = completedTasks.Count(t => t.ClientId == client.Id)
+        })
+        .OrderByDescending(c => c.Rating)
+        .ToList();
+
+        return Ok(clientStats);
+    }
 }

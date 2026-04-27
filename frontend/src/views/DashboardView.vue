@@ -568,6 +568,33 @@
             </router-link>
           </div>
         </div>
+
+        <!-- Client Stats Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition">
+          <div class="bg-gradient-to-r from-cyan-500 to-cyan-600 px-8 py-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-2xl font-bold text-white">Client Statistics</h2>
+                <p class="text-cyan-100 text-sm mt-1">Browse client profiles and ratings</p>
+              </div>
+              <svg class="w-12 h-12 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 12H9m4 8H9m6-4H9m4 4H9m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="p-8">
+            <p class="text-gray-600 mb-6">
+              View detailed statistics about all clients on the platform. See their ratings and completed tasks.
+            </p>
+            <router-link
+              to="/client-stats"
+              class="w-full px-6 py-3 bg-cyan-600 text-white font-semibold rounded-lg hover:bg-cyan-700 transition shadow-sm hover:shadow-md text-center block"
+            >
+              View Client Stats
+            </router-link>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -580,6 +607,7 @@ import { authService } from '@/services/api'
 import { tasksService, type Task } from '@/services/tasksService'
 import { userService, type User } from '@/services/userService'
 import { complaintsService, type Complaint } from '@/services/complaintsService'
+import { getRunnerStats, type RunnerStats } from '@/services/runnerStatsService'
 import DashboardChatSection from '@/components/DashboardChatSection.vue'
 import PaymentHistoryCard from '@/components/PaymentHistoryCard.vue'
 
@@ -591,6 +619,7 @@ const userId = authService.getUserId()
 const tasks = ref<Task[]>([])
 const users = ref<User[]>([])
 const complaints = ref<Complaint[]>([])
+const runnerStats = ref<RunnerStats[]>([])
 const loading = ref(false)
 
 // Computed: First 3 non-completed tasks (for clients)
@@ -672,6 +701,9 @@ onMounted(() => {
   if (role.value === 'Admin') {
     fetchAdminData()
   }
+  
+  // Fetch stats for all roles
+  fetchRunnerStats()
 })
 
 async function fetchTasks() {
@@ -709,6 +741,14 @@ async function fetchAdminData() {
   }
 
   loading.value = false
+}
+
+async function fetchRunnerStats() {
+  try {
+    runnerStats.value = await getRunnerStats()
+  } catch (err) {
+    console.error('Failed to fetch runner stats:', err)
+  }
 }
 
 function getDashboardGreeting() {

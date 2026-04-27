@@ -88,6 +88,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/client-stats',
+      name: 'ClientStats',
+      component: () => import('../views/ClientStatsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/chatroom',
       name: 'Chatroom',
       component: () => import('../views/ChatroomView.vue'),
