@@ -56,9 +56,12 @@ public class TasksController : ControllerBase
         var tasks = await query.Include(t => t.TaskItems).ToListAsync();
 
         // Runners should only see tasks that have at least one TaskItem
+        // and tasks should be sorted by client rating (highest first)
         if (userRole == "Runner")
         {
-            tasks = tasks.Where(t => t.TaskItems.Count > 0).ToList();
+            tasks = tasks.Where(t => t.TaskItems.Count > 0)
+                .OrderByDescending(t => t.Client.AverageRating)
+                .ToList();
         }
 
         // Mark any tasks that have reached their expiration date
