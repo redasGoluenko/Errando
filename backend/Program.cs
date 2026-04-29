@@ -153,3 +153,7 @@ app.UseSwaggerUI(c =>
 app.MapControllers();
 
 app.Run();
+
+// Make Program class public for testing purposes
+public partial class Program { }
+

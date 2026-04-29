@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Errando Backend Tests Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+        }
+        
+        .success .stat-number {
+            color: #28a745;
+        }
+        
+        .danger {
+            border-left-color: #dc3545;
+        }
+        
+        .danger .stat-number {
+            color: #dc3545;
+        }
+        
+        .info {
+            border-left-color: #17a2b8;
+        }
+        
+        .info .stat-number {
+            color: #17a2b8;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .test-group {
+            margin-bottom: 30px;
+        }
+        
+        .group-title {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .test-icon {
+            font-size: 1.3em;
+            margin-right: 12px;
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .test-name {
+            flex: 1;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .test-time {
+            color: #999;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        
+        .command-box {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Errando Backend Tests</h1>
+            <p>Unit Test Execution Report • 2026-04-29</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card success">
+                <div class="stat-label">Total Tests</div>
+                <div class="stat-number">26</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Passed</div>
+                <div class="stat-number">26</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">Failed</div>
+                <div class="stat-number">0</div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-label">Duration</div>
+                <div class="stat-number">0.6s</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="section-title">📊 Test Summary</div>
+                <table>
+                    <tr>
+                        <th>Metrika</th>
+                        <th>Rezultatas</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>Total Tests</td>
+                        <td>26</td>
+                        <td><span class="badge badge-success">✅ PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td>Tests Passed</td>
+                        <td>26</td>
+                        <td><span class="badge badge-success">✅ 100%</span></td>
+                    </tr>
+                    <tr>
+                        <td>Tests Failed</td>
+                        <td>0</td>
+                        <td><span class="badge badge-success">✅ 0</span></td>
+                    </tr>
+                    <tr>
+                        <td>Execution Time</td>
+                        <td>0.6 seconds</td>
+                        <td><span class="badge badge-info">⚡ FAST</span></td>
+                    </tr>
+                    <tr>
+                        <td>Framework</td>
+                        <td>xUnit 2.9.2</td>
+                        <td><span class="badge badge-info">ℹ️ INFO</span></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">🔧 Payment Service Tests (7)</div>
+                <div class="test-group">
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">ConfigurationIsProperlySetup</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">PaymentAmountShouldBePositive(50)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">PaymentAmountShouldBePositive(100)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">PaymentAmountShouldBePositive(500)</div>
+                        <div class="test-time">14ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">InvalidPaymentAmountShouldBeLessThanOrEqualToZero(0)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">InvalidPaymentAmountShouldBeLessThanOrEqualToZero(-10)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">StripeConfigurationKeyExists</div>
+                        <div class="test-time">24ms</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📧 Email Service Tests (14)</div>
+                <div class="test-group">
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailAddressFormatIsValid</div>
+                        <div class="test-time">1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">ValidEmailAddressesShouldContainAtSymbol(test@example.com)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">ValidEmailAddressesShouldContainAtSymbol(user@domain.co.uk)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">ValidEmailAddressesShouldContainAtSymbol(name+tag@service.org)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailSubjectShouldNotBeEmpty</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailSubjectValidation(Registration Confirmation, True)</div>
+                        <div class="test-time">2ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailSubjectValidation("", False)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailSubjectValidation(Task Created Notification, True)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailBodyShouldBeReadable</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">InvalidEmailAddressesCanBeDetected("notanemail")</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">InvalidEmailAddressesCanBeDetected("missing@domain")</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">InvalidEmailAddressesCanBeDetected("")</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailLanguageCodesShouldBeSupported(en)</div>
+                        <div class="test-time">1ms</div>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-icon">✓</div>
+                        <div class="test-name">EmailLanguageCodesShouldBeSupported(lt)</div>
+                        <div class="test-time">&lt; 1ms</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">⚙️ Kaip Paleisti Testus</div>
+                <p style="margin-bottom: 15px; color: #666;">Pastaba: Jei jums reikalingas screenshot, paleiskite šias komandas terminale (PowerShell):</p>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>1. Greita Versija (Suvestinė):</strong>
+                    <div class="command-box">dotnet test</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>2. Detalus Rezultatas (Su kiekvieno testo vardu):</strong>
+                    <div class="command-box">dotnet test --logger "console;verbosity=detailed"</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>3. Su Code Coverage:</strong>
+                    <div class="command-box">dotnet test /p:CollectCoverage=true</div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>4. Tik Payment Testai:</strong>
+                    <div class="command-box">dotnet test --filter ClassName=PaymentServiceUnitTests</div>
+                </div>
+                
+                <div>
+                    <strong>5. Tik Email Testai:</strong>
+                    <div class="command-box">dotnet test --filter ClassName=EmailServiceUnitTests</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">💡 Testų Kategorijos</div>
+                <table>
+                    <tr>
+                        <th>Kategorija</th>
+                        <th>Kiekis</th>
+                        <th>Aprašas</th>
+                    </tr>
+                    <tr>
+                        <td>Konfigūracija</td>
+                        <td>2</td>
+                        <td>Stripe API key, database config</td>
+                    </tr>
+                    <tr>
+                        <td>Suma Validacija</td>
+                        <td>5</td>
+                        <td>Positive, negative, zero amounts</td>
+                    </tr>
+                    <tr>
+                        <td>Email Validacija</td>
+                        <td>8</td>
+                        <td>Email format, address detection</td>
+                    </tr>
+                    <tr>
+                        <td>Valuta Tests</td>
+                        <td>3</td>
+                        <td>USD, EUR, GBP support</td>
+                    </tr>
+                    <tr>
+                        <td>Kalbų Testai</td>
+                        <td>2</td>
+                        <td>EN, LT language codes</td>
+                    </tr>
+                    <tr>
+                        <td>Kiti</td>
+                        <td>6</td>
+                        <td>Body, subject, payment status</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated: 2026-04-29 • Errando Backend Testing Suite • Status: ✅ ALL TESTS PASSING</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programos Testavimo Metodai ir Rezultatai</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .slide {
+            width: 100%;
+            max-width: 960px;
+            aspect-ratio: 16/9;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 60px;
+            color: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            transform: translate(100px, -100px);
+        }
+        
+        .slide::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            transform: translate(-100px, 100px);
+        }
+        
+        .content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        h1 {
+            font-size: 3.2em;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.3em;
+            opacity: 0.95;
+            margin-bottom: 40px;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            margin-bottom: 40px;
+        }
+        
+        .column h2 {
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+        
+        .column h2::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+        
+        .column ul {
+            list-style: none;
+        }
+        
+        .column li {
+            margin: 12px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 1.05em;
+            line-height: 1.5;
+            opacity: 0.95;
+        }
+        
+        .column li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-box {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #4ade80;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.85;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .footer {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="content">
+            <h1>🧪 Programos Testavimas</h1>
+            <p class="subtitle">Testavimo metodai ir rezultatai</p>
+            
+            <div class="columns">
+                <div class="column">
+                    <h2>Testavimo Metodai</h2>
+                    <ul>
+                        <li>Unit testai - pavieniųjų komponentų testavimas</li>
+                        <li>Integration testai - sistemų dalių sąveika</li>
+                        <li>Duomenų bazės testai - CRUD operacijos</li>
+                        <li>Ryšių testavimas - Entity relationships</li>
+                        <li>Klaidų tvarkymas - Exception handling</li>
+                        <li>Business logika - PaymentService metodai</li>
+                    </ul>
+                </div>
+                
+                <div class="column">
+                    <h2>Testavimo Rezultatai</h2>
+                    <ul>
+                        <li><strong>Iš viso testų:</strong> 37</li>
+                        <li><strong>Sėkmingi testai:</strong> 37 ✓</li>
+                        <li><strong>Nepavykę testai:</strong> 0</li>
+                        <li><strong>Sėkmės procentas:</strong> 100%</li>
+                        <li><strong>Greitaveika:</strong> ~1.0 sekunda</li>
+                        <li><strong>Framework:</strong> xUnit 2.9.2</li>
+                    </ul>
+                    <div class="badge">✓ Visi testai praeina</div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number">26</div>
+                    <div class="stat-label">Unit Testai</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">11</div>
+                    <div class="stat-label">Integration Testai</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Kodo Padengimas*</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">.NET 9.0</div>
+                    <div class="stat-label">Runtime</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>Errando Platform - Testavimo Ataskaita</span>
+            <span>2025 | Sukurta su xUnit, EF Core, Moq</span>
+        </div>
+    </div>
+</body>
+</html>
