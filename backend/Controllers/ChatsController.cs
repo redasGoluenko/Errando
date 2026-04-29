@@ -262,10 +262,13 @@ public class ChatsController : ControllerBase
     }
 
     /// <summary>
+    /// <summary>
     /// Get chat participants (users relevant to the current user based on task assignments)
     /// Returns potential chat participants based on:
-    /// - For Clients: Runners assigned to their ACTIVE tasks, or Admin if no active runners are assigned
-    /// - For Runners: Clients whose ACTIVE tasks are assigned to them    /// A task is considered incomplete if it has no TaskItems or if not all of its TaskItems are completed    /// </summary>
+    /// - For Clients: Runners assigned to their ACTIVE tasks, PLUS Admin (always available)
+    /// - For Runners: Clients whose ACTIVE tasks are assigned to them, PLUS Admin (always available)
+    /// - A task is considered incomplete if it has no TaskItems or if not all of its TaskItems are completed
+    /// </summary>
     [HttpGet("participants")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetChatParticipants()
     {
@@ -287,18 +290,15 @@ public class ChatsController : ControllerBase
 
             participantIds = new HashSet<int>(runnerIds);
 
-            // If no active runners are assigned, only allow chat with admin
-            if (participantIds.Count == 0)
-            {
-                var adminId = await _context.Users
-                    .Where(u => u.Role == "Admin")
-                    .Select(u => u.Id)
-                    .FirstOrDefaultAsync();
+            // Always add admin as an option
+            var adminId = await _context.Users
+                .Where(u => u.Role == "Admin")
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
 
-                if (adminId > 0)
-                {
-                    participantIds.Add(adminId);
-                }
+            if (adminId > 0)
+            {
+                participantIds.Add(adminId);
             }
         }
         else if (userRole == "Runner")
@@ -313,6 +313,17 @@ public class ChatsController : ControllerBase
                 .ToListAsync();
 
             participantIds = new HashSet<int>(clientIds);
+
+            // Always add admin as an option
+            var adminId = await _context.Users
+                .Where(u => u.Role == "Admin")
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (adminId > 0)
+            {
+                participantIds.Add(adminId);
+            }
         }
         // Admin can see all users
 

@@ -55,6 +55,12 @@ public class TasksController : ControllerBase
 
         var tasks = await query.Include(t => t.TaskItems).ToListAsync();
 
+        // Runners should only see tasks that have at least one TaskItem
+        if (userRole == "Runner")
+        {
+            tasks = tasks.Where(t => t.TaskItems.Count > 0).ToList();
+        }
+
         // Mark any tasks that have reached their expiration date
         await MarkExpiredTasks(tasks);
 
@@ -107,6 +113,12 @@ public class TasksController : ControllerBase
         }
 
         if (userRole == "Runner" && task.IsDeletedByRunner)
+        {
+            return NotFound();
+        }
+
+        // Runners should not see tasks without TaskItems
+        if (userRole == "Runner" && task.TaskItems.Count == 0)
         {
             return NotFound();
         }
@@ -490,7 +502,10 @@ public class TasksController : ControllerBase
     [Authorize(Roles = "Runner,Admin")]
     public async Task<ActionResult<TodoTask>> UnassignTask(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.Tasks
+            .Include(t => t.TaskItems)
+            .FirstOrDefaultAsync(t => t.Id == id);
+            
         if (task == null)
         {
             return NotFound(new { message = "Task not found" });
@@ -505,9 +520,24 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
+        // Check if any task items are completed - if so, cannot unassign
+        if (task.TaskItems != null && task.TaskItems.Any(ti => ti.IsCompleted))
+        {
+            _logger.LogWarning($"Attempt to unassign task {id} with completed items. Runner: {userId}, Completed items: {task.TaskItems.Count(ti => ti.IsCompleted)}");
+            return BadRequest(new { 
+                message = "Cannot unassign task that has already started. Task items have been marked as completed.",
+                completedItemsCount = task.TaskItems.Count(ti => ti.IsCompleted)
+            });
+        }
+
         task.RunnerId = null;
+        task.UpdatedAt = DateTime.UtcNow;
+        
+        _context.Tasks.Update(task);
         await _context.SaveChangesAsync();
 
+        _logger.LogInformation($"Task {id} successfully unassigned by runner {userId}");
+        
         return task;
     }
 
