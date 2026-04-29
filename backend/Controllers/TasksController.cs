@@ -343,7 +343,10 @@ public class TasksController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {
-        var task = await _context.Tasks.Include(t => t.TaskItems).FirstOrDefaultAsync(t => t.Id == id);
+        var task = await _context.Tasks
+            .Include(t => t.TaskItems)
+            .FirstOrDefaultAsync(t => t.Id == id);
+            
         if (task == null)
         {
             return NotFound(new { message = "Task not found" });
@@ -351,6 +354,43 @@ public class TasksController : ControllerBase
 
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+        // Admin can delete any task permanently (hard delete)
+        if (userRole == "Admin")
+        {
+            try
+            {
+                // Delete related payments (cascade should handle this, but explicit for clarity)
+                var payments = await _context.Payments
+                    .Where(p => p.TaskId == id)
+                    .ToListAsync();
+                _context.Payments.RemoveRange(payments);
+
+                // Delete related complaints (cascade should handle this)
+                var complaints = await _context.Complaints
+                    .Where(c => c.TaskId == id)
+                    .ToListAsync();
+                _context.Complaints.RemoveRange(complaints);
+
+                // Delete related reviews (cascade should handle this)
+                var reviews = await _context.Reviews
+                    .Where(r => r.TaskId == id)
+                    .ToListAsync();
+                _context.Reviews.RemoveRange(reviews);
+
+                // Delete the task itself (TaskItems will be cascade deleted by EF)
+                _context.Tasks.Remove(task);
+                
+                await _context.SaveChangesAsync();
+                
+                return Ok(new { message = "Task permanently deleted" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error deleting task {id}: {ex.Message}");
+                return StatusCode(500, new { message = "Error deleting task", error = ex.Message });
+            }
+        }
 
         if (userRole == "Client" && task.ClientId != userId)
         {
@@ -382,7 +422,7 @@ public class TasksController : ControllerBase
         _context.Tasks.Update(task);
         await _context.SaveChangesAsync();
 
-        return NoContent();
+        return Ok(new { message = "Task deleted" });
     }
 
     [HttpPost("upload-photo")]
