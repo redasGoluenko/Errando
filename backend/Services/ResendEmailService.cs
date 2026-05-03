@@ -257,4 +257,119 @@ public class ResendEmailService : IEmailService
             return false;
         }
     }
+
+    public async Task<bool> SendTaskAssignedAsync(string email, string taskTitle, string runnerUsername)
+    {
+        try
+        {
+            var htmlContent = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #7b1fa2;'>Task Assigned to Runner</h2>
+                    <p>Great news! Your task has been assigned to a runner and work will begin soon.</p>
+                    
+                    <div style='background-color: #f3e5f5; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #7b1fa2;'>
+                        <p><strong>Task Details:</strong></p>
+                        <p>Title: <strong>{taskTitle}</strong></p>
+                        <p>Assigned to: <strong>{runnerUsername}</strong></p>
+                        <p>Assignment Date: <strong>{DateTime.UtcNow:MMMM dd, yyyy 'at' HH:mm}</strong></p>
+                    </div>
+                    
+                    <p>You can track the progress of your task in your Errando dashboard. The runner will update you on the status of your task.</p>
+                    
+                    <p style='color: #666; font-size: 12px; margin-top: 30px;'>
+                        This is an automated email. Please do not reply to this email address.
+                    </p>
+                </div>";
+
+            var payload = new
+            {
+                from = "onboarding@resend.dev",
+                to = email,
+                subject = $"Task Assigned: {taskTitle}",
+                html = htmlContent
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, ResendApiUrl);
+            request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+            request.Content = content;
+
+            var response = await _httpClient.SendAsync(request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Task assigned email sent successfully to {email} for task '{taskTitle}' assigned to '{runnerUsername}'. Response: {responseContent}");
+                return true;
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError($"Failed to send task assigned email to {email} for task '{taskTitle}'. Status: {response.StatusCode}, Error: {errorContent}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Exception occurred while sending task assigned email to {email} for task '{taskTitle}'");
+            return false;
+        }
+    }
+
+    public async Task<bool> SendTaskUnassignedAsync(string email, string taskTitle)
+    {
+        try
+        {
+            var htmlContent = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #c62828;'>Task Unassigned</h2>
+                    <p>The runner assigned to your task has unassigned themselves. Your task is now available for other runners to pick up.</p>
+                    
+                    <div style='background-color: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #c62828;'>
+                        <p><strong>Task Details:</strong></p>
+                        <p>Title: <strong>{taskTitle}</strong></p>
+                        <p>Unassignment Date: <strong>{DateTime.UtcNow:MMMM dd, yyyy 'at' HH:mm}</strong></p>
+                    </div>
+                    
+                    <p>Don't worry! We will notify you as soon as another runner is assigned to complete your task. You can also view this task in your Errando dashboard.</p>
+                    
+                    <p style='color: #666; font-size: 12px; margin-top: 30px;'>
+                        This is an automated email. Please do not reply to this email address.
+                    </p>
+                </div>";
+
+            var payload = new
+            {
+                from = "onboarding@resend.dev",
+                to = email,
+                subject = $"Task Unassigned: {taskTitle}",
+                html = htmlContent
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, ResendApiUrl);
+            request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+            request.Content = content;
+
+            var response = await _httpClient.SendAsync(request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Task unassigned email sent successfully to {email} for task '{taskTitle}'. Response: {responseContent}");
+                return true;
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError($"Failed to send task unassigned email to {email} for task '{taskTitle}'. Status: {response.StatusCode}, Error: {errorContent}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Exception occurred while sending task unassigned email to {email} for task '{taskTitle}'");
+            return false;
+        }
+    }
 }

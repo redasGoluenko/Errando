@@ -480,7 +480,10 @@ public class TasksController : ControllerBase
     [Authorize(Roles = "Runner")]
     public async Task<ActionResult<TodoTask>> AssignTask(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.Tasks
+            .Include(t => t.Client)
+            .FirstOrDefaultAsync(t => t.Id == id);
+        
         if (task == null)
         {
             return NotFound(new { message = "Task not found" });
@@ -494,8 +497,21 @@ public class TasksController : ControllerBase
             return BadRequest(new { message = "Task is already assigned to a runner" });
         }
 
+        // Get runner details for email
+        var runner = await _context.Users.FindAsync(userId);
+        if (runner == null)
+        {
+            return BadRequest(new { message = "Runner not found" });
+        }
+
         task.RunnerId = userId;
         await _context.SaveChangesAsync();
+
+        // Send assignment email to client
+        if (task.Client != null && !string.IsNullOrEmpty(task.Client.Email))
+        {
+            await _emailService.SendTaskAssignedAsync(task.Client.Email, task.Title, runner.Username);
+        }
 
         return task;
     }
@@ -507,6 +523,7 @@ public class TasksController : ControllerBase
     {
         var task = await _context.Tasks
             .Include(t => t.TaskItems)
+            .Include(t => t.Client)
             .FirstOrDefaultAsync(t => t.Id == id);
             
         if (task == null)
@@ -540,6 +557,12 @@ public class TasksController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation($"Task {id} successfully unassigned by runner {userId}");
+
+        // Send unassignment email to client
+        if (task.Client != null && !string.IsNullOrEmpty(task.Client.Email))
+        {
+            await _emailService.SendTaskUnassignedAsync(task.Client.Email, task.Title);
+        }
         
         return task;
     }

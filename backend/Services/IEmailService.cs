@@ -6,4 +6,6 @@ public interface IEmailService
     Task<bool> SendTaskExpirationAsync(string email, string taskTitle, DateTime expirationDate);
     Task<bool> SendTaskCreatedAsync(string email, string taskTitle, string clientUsername, DateTime scheduledTime);
     Task<bool> SendTaskCompletedAsync(string email, string taskTitle, string clientUsername);
+    Task<bool> SendTaskAssignedAsync(string email, string taskTitle, string runnerUsername);
+    Task<bool> SendTaskUnassignedAsync(string email, string taskTitle);
 }
