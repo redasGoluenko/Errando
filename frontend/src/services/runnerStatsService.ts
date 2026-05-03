@@ -4,8 +4,12 @@ export interface RunnerStats {
   id: number
   username: string
   rating: number
+  totalReviews: number
   tasksCompleted: number
+  activeTasks: number
   moneyEarned: number
+  taskAcceptanceRate: number
+  totalTasksAssigned: number
 }
 
 export async function getRunnerStats(): Promise<RunnerStats[]> {

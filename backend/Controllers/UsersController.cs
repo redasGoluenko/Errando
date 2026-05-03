@@ -291,20 +291,31 @@ public class UsersController : ControllerBase
             .Include(t => t.TaskItems)
             .ToListAsync();
 
+        var complaints = await _context.Complaints.ToListAsync();
+
         // A task is completed if all its task items are completed
         var completedTasks = tasks
             .Where(t => t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted))
             .ToList();
+
+        var allAssignedTasks = tasks.Where(t => t.RunnerId.HasValue).ToList();
 
         var runnerStats = runners.Select(runner => new RunnerStatsDto
         {
             Id = runner.Id,
             Username = runner.Username,
             Rating = runner.AverageRating,
+            TotalReviews = runner.TotalReviews,
             TasksCompleted = completedTasks.Count(t => t.RunnerId == runner.Id),
+            ActiveTasks = tasks.Count(t => t.RunnerId == runner.Id && (t.TaskItems.Count == 0 || !t.TaskItems.All(ti => ti.IsCompleted))),
             MoneyEarned = completedTasks
                 .Where(t => t.RunnerId == runner.Id)
-                .Sum(t => t.Price ?? 0)
+                .Sum(t => t.Price ?? 0),
+            TotalTasksAssigned = allAssignedTasks.Count(t => t.RunnerId == runner.Id),
+            TaskAcceptanceRate = allAssignedTasks.Count(t => t.RunnerId == runner.Id) > 0 
+                ? Math.Round((decimal)completedTasks.Count(t => t.RunnerId == runner.Id) / 
+                    allAssignedTasks.Count(t => t.RunnerId == runner.Id) * 100, 2)
+                : 0
         })
         .OrderByDescending(r => r.Rating)
         .ToList();
@@ -326,6 +337,9 @@ public class UsersController : ControllerBase
             .Include(t => t.TaskItems)
             .ToListAsync();
 
+        var payments = await _context.Payments.ToListAsync();
+        var complaints = await _context.Complaints.ToListAsync();
+
         // A task is completed if all its task items are completed
         var completedTasks = tasks
             .Where(t => t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted))
@@ -336,11 +350,94 @@ public class UsersController : ControllerBase
             Id = client.Id,
             Username = client.Username,
             Rating = client.AverageRating,
-            TasksCompleted = completedTasks.Count(t => t.ClientId == client.Id)
+            TotalReviews = client.TotalReviews,
+            TasksCreated = tasks.Count(t => t.ClientId == client.Id),
+            TasksCompleted = completedTasks.Count(t => t.ClientId == client.Id),
+            ActiveTasks = tasks.Count(t => t.ClientId == client.Id && (t.TaskItems.Count == 0 || !t.TaskItems.All(ti => ti.IsCompleted))),
+            TotalSpent = payments
+                .Where(p => p.ClientId == client.Id && p.Status == "succeeded")
+                .Sum(p => p.Amount),
+            ComplaintsFiled = complaints.Count(c => c.ClientId == client.Id),
+            CompletionRate = tasks.Count(t => t.ClientId == client.Id) > 0
+                ? Math.Round((decimal)completedTasks.Count(t => t.ClientId == client.Id) / 
+                    tasks.Count(t => t.ClientId == client.Id) * 100, 2)
+                : 0
         })
         .OrderByDescending(c => c.Rating)
         .ToList();
 
         return Ok(clientStats);
+    }
+
+    /// <summary>
+    /// Get admin dashboard statistics
+    /// </summary>
+    [HttpGet("admin/stats")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<AdminStatsDto>> GetAdminStats()
+    {
+        var users = await _context.Users.ToListAsync();
+        var tasks = await _context.Tasks
+            .Include(t => t.TaskItems)
+            .ToListAsync();
+        var complaints = await _context.Complaints.ToListAsync();
+        var payments = await _context.Payments.ToListAsync();
+
+        // Calculate task statistics
+        var completedTasks = tasks
+            .Where(t => t.TaskItems.Count > 0 && t.TaskItems.All(ti => ti.IsCompleted))
+            .ToList();
+        
+        var activeTasks = tasks.Where(t => t.TaskItems.Count == 0 || !t.TaskItems.All(ti => ti.IsCompleted)).ToList();
+        
+        var activeUsers = users.Where(u => !string.IsNullOrEmpty(u.Username)).ToList();
+        
+        var thisMonth = DateTime.UtcNow.AddMonths(-1);
+        var usersCreatedThisMonth = users.Count();
+        var tasksCreatedThisMonth = tasks.Count(t => t.CreatedAt >= thisMonth);
+
+        var successfulPayments = payments.Where(p => p.Status == "succeeded").ToList();
+        var pendingPayments = payments.Where(p => p.Status == "pending").ToList();
+        var failedPayments = payments.Where(p => p.Status == "failed").ToList();
+
+        var totalRevenue = successfulPayments.Sum(p => p.Amount);
+        var resolvedComplaints = complaints.Where(c => c.IsResolved).ToList();
+        var unresolvedComplaints = complaints.Where(c => !c.IsResolved).ToList();
+
+        var averageRating = users.Where(u => u.AverageRating > 0).Count() > 0
+            ? Math.Round(users.Average(u => u.AverageRating), 2)
+            : 0m;
+
+        return Ok(new AdminStatsDto
+        {
+            TotalUsers = users.Count,
+            ActiveUsers = activeUsers.Count,
+            AdminCount = users.Count(u => u.Role == "Admin"),
+            ClientCount = users.Count(u => u.Role == "Client"),
+            RunnerCount = users.Count(u => u.Role == "Runner"),
+            
+            TotalTasks = tasks.Count,
+            CompletedTasks = completedTasks.Count,
+            ActiveTasks = activeTasks.Count,
+            TaskCompletionRate = tasks.Count > 0 
+                ? Math.Round((decimal)completedTasks.Count / tasks.Count * 100, 2)
+                : 0,
+            
+            TotalComplaints = complaints.Count,
+            ResolvedComplaints = resolvedComplaints.Count,
+            UnresolvedComplaints = unresolvedComplaints.Count,
+            ComplaintResolutionRate = complaints.Count > 0
+                ? Math.Round((decimal)resolvedComplaints.Count / complaints.Count * 100, 2)
+                : 0,
+            
+            TotalRevenue = totalRevenue,
+            SuccessfulPayments = successfulPayments.Count,
+            PendingPayments = pendingPayments.Count,
+            FailedPayments = failedPayments.Count,
+            
+            AverageSystemRating = averageRating,
+            UsersCreatedThisMonth = usersCreatedThisMonth,
+            TasksCreatedThisMonth = tasksCreatedThisMonth
+        });
     }
 }

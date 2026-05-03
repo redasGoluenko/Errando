@@ -347,8 +347,9 @@
 
       <!-- Admin Dashboard Layout -->
       <div v-else-if="role === 'Admin'" class="space-y-8">
-        <!-- Quick Stats Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Quick Stats Row - Expanded -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Total Users -->
           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between">
               <div>
@@ -363,6 +364,7 @@
             </div>
           </div>
 
+          <!-- Total Tasks -->
           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between">
               <div>
@@ -377,6 +379,7 @@
             </div>
           </div>
 
+          <!-- Total Complaints -->
           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
             <div class="flex items-center justify-between">
               <div>
@@ -386,6 +389,55 @@
               <div class="bg-orange-100 p-4 rounded-lg">
                 <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Users -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Active Users</p>
+                <p class="text-4xl font-bold text-green-600 mt-2">{{ allUsers.length }}</p>
+              </div>
+              <div class="bg-green-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Tasks -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Completed Tasks</p>
+                <p class="text-4xl font-bold text-purple-600 mt-2">
+                  {{ tasks.filter(t => t.isCompleted).length }}
+                </p>
+              </div>
+              <div class="bg-purple-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resolved Complaints -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">Resolved Complaints</p>
+                <p class="text-4xl font-bold text-teal-600 mt-2">
+                  {{ allComplaints.filter(c => c.isResolved).length }}
+                </p>
+              </div>
+              <div class="bg-teal-100 p-4 rounded-lg">
+                <svg class="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             </div>

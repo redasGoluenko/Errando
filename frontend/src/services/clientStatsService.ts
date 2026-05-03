@@ -4,7 +4,13 @@ export interface ClientStats {
   id: number
   username: string
   rating: number
+  totalReviews: number
+  tasksCreated: number
   tasksCompleted: number
+  activeTasks: number
+  totalSpent: number
+  complaintsFiled: number
+  completionRate: number
 }
 
 export async function getClientStats(): Promise<ClientStats[]> {

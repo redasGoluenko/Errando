@@ -68,6 +68,14 @@ function getRatingBgColor(rating: number): string {
   return 'bg-red-50'
 }
 
+// Format currency
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('lt-LT', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(amount)
+}
+
 function goBack() {
   router.push('/dashboard')
 }
@@ -156,7 +164,7 @@ function goBack() {
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ client.username }}</h3>
 
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <!-- Rating -->
                   <div>
                     <p class="text-sm text-gray-600 mb-1">Rating</p>
@@ -168,12 +176,54 @@ function goBack() {
                     </div>
                   </div>
 
-                  <!-- Tasks Completed -->
+                  <!-- Total Reviews -->
                   <div>
-                    <p class="text-sm text-gray-600 mb-1">Completed Tasks</p>
+                    <p class="text-sm text-gray-600 mb-1">Reviews</p>
                     <div class="flex items-center gap-2">
                       <svg
-                        class="w-5 h-5 text-cyan-600"
+                        class="w-5 h-5 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                        />
+                      </svg>
+                      <span class="text-2xl font-bold text-gray-900">{{ client.totalReviews }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Tasks Created -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Created</p>
+                    <div class="flex items-center gap-2">
+                      <svg
+                        class="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      <span class="text-2xl font-bold text-gray-900">{{ client.tasksCreated }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Tasks Completed -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Completed</p>
+                    <div class="flex items-center gap-2">
+                      <svg
+                        class="w-5 h-5 text-green-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -186,6 +236,92 @@ function goBack() {
                         />
                       </svg>
                       <span class="text-2xl font-bold text-gray-900">{{ client.tasksCompleted }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Active Tasks -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Active</p>
+                    <div class="flex items-center gap-2">
+                      <svg
+                        class="w-5 h-5 text-cyan-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      <span class="text-2xl font-bold text-gray-900">{{ client.activeTasks }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Completion Rate -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Completion Rate</p>
+                    <div class="flex items-center gap-2">
+                      <svg
+                        class="w-5 h-5 text-orange-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                      <span class="text-2xl font-bold text-gray-900">{{ client.completionRate }}%</span>
+                    </div>
+                  </div>
+
+                  <!-- Total Spent -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Total Spent</p>
+                    <div class="flex items-center gap-1">
+                      <svg
+                        class="w-5 h-5 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span class="text-lg font-bold text-green-600">
+                        {{ formatCurrency(client.totalSpent) }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Complaints Filed -->
+                  <div>
+                    <p class="text-sm text-gray-600 mb-1">Complaints</p>
+                    <div class="flex items-center gap-2">
+                      <svg
+                        class="w-5 h-5 text-red-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span class="text-2xl font-bold text-gray-900">{{ client.complaintsFiled }}</span>
                     </div>
                   </div>
                 </div>
