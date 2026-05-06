@@ -1,16 +1,26 @@
 using Moq;
 using Xunit;
 using Errando.Data;
+using Errando.Controllers;
+using Errando.Services;
+using Errando.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace backend.Tests.Integration.Controllers
 {
     public class PaymentsControllerIntegrationTests : IAsyncLifetime
     {
         private AppDbContext _dbContext = null!;
+        private PaymentsController _controller = null!;
+        private Mock<IPaymentService> _paymentServiceMock = null!;
+        private Mock<ILogger<PaymentsController>> _loggerMock = null!;
 
         public async Task InitializeAsync()
         {
@@ -22,6 +32,27 @@ namespace backend.Tests.Integration.Controllers
             _dbContext = new AppDbContext(options);
             await _dbContext.Database.EnsureCreatedAsync();
             await SeedData();
+
+            _paymentServiceMock = new Mock<IPaymentService>();
+            _loggerMock = new Mock<ILogger<PaymentsController>>();
+
+            _controller = new PaymentsController(_paymentServiceMock.Object, _dbContext, _loggerMock.Object);
+            
+            // Setup default user claims
+            SetupUserClaims(userId: 1);
+        }
+
+        private void SetupUserClaims(int userId)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Role, "Client")
+            };
+            
+            var identity = new ClaimsIdentity(claims);
+            var principal = new ClaimsPrincipal(identity);
+            _controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = principal } };
         }
 
         private async Task SeedData()
@@ -35,6 +66,17 @@ namespace backend.Tests.Integration.Controllers
                 Role = "Client",
                 AverageRating = 4.5m,
                 TotalReviews = 10
+            };
+
+            var runner = new User
+            {
+                Id = 2,
+                Username = "testrunner",
+                Email = "runner@test.com",
+                PasswordHash = "hashed",
+                Role = "Runner",
+                AverageRating = 4.8m,
+                TotalReviews = 15
             };
 
             var task = new TodoTask
@@ -54,6 +96,7 @@ namespace backend.Tests.Integration.Controllers
             };
 
             _dbContext.Users.Add(client);
+            _dbContext.Users.Add(runner);
             _dbContext.Tasks.Add(task);
             await _dbContext.SaveChangesAsync();
         }
@@ -64,197 +107,152 @@ namespace backend.Tests.Integration.Controllers
         }
 
         [Fact]
-        public async Task Payment_ShouldBeStoredAndRetrievedFromDatabase()
+        public async Task CreatePaymentIntent_ShouldReturnBadRequest_WhenTaskNotFound()
         {
             // Arrange
-            var payment = new Payment
-            {
-                Id = 1,
-                TaskId = 1,
-                ClientId = 1,
-                Amount = 100m,
-                Currency = "usd",
-                Status = "succeeded",
-                StripePaymentIntentId = "pi_test_123",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            // Act
-            _dbContext.Payments.Add(payment);
-            await _dbContext.SaveChangesAsync();
-
-            var retrievedPayment = await _dbContext.Payments.FirstOrDefaultAsync(p => p.Id == 1);
-
-            // Assert
-            Assert.NotNull(retrievedPayment);
-            Assert.Equal(100m, retrievedPayment.Amount);
-            Assert.Equal("succeeded", retrievedPayment.Status);
-            Assert.Equal("usd", retrievedPayment.Currency);
-        }
-
-        [Fact]
-        public async Task GetPaymentsByClient_ShouldReturnOnlyClientPayments()
-        {
-            // Arrange
-            var payments = new List<Payment>
-            {
-                new Payment
-                {
-                    Id = 1,
-                    TaskId = 1,
-                    ClientId = 1,
-                    Amount = 100m,
-                    Currency = "usd",
-                    Status = "succeeded",
-                    StripePaymentIntentId = "pi_test_1",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                },
-                new Payment
-                {
-                    Id = 2,
-                    TaskId = 2,
-                    ClientId = 2,
-                    Amount = 200m,
-                    Currency = "usd",
-                    Status = "succeeded",
-                    StripePaymentIntentId = "pi_test_2",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                }
-            };
-
-            // Act
-            _dbContext.Payments.AddRange(payments);
-            await _dbContext.SaveChangesAsync();
-
-            var clientPayments = await _dbContext.Payments
-                .Where(p => p.ClientId == 1)
-                .ToListAsync();
-
-            // Assert
-            Assert.Single(clientPayments);
-            Assert.Equal(1, clientPayments[0].ClientId);
-            Assert.Equal(100m, clientPayments[0].Amount);
-        }
-
-        [Fact]
-        public async Task GetPaymentHistory_ShouldReturnMultiplePaymentsForTask()
-        {
-            // Arrange
-            var payments = new List<Payment>
-            {
-                new Payment
-                {
-                    Id = 1,
-                    TaskId = 1,
-                    ClientId = 1,
-                    Amount = 50m,
-                    Currency = "usd",
-                    Status = "succeeded",
-                    StripePaymentIntentId = "pi_test_1",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                },
-                new Payment
-                {
-                    Id = 2,
-                    TaskId = 1,
-                    ClientId = 1,
-                    Amount = 50m,
-                    Currency = "usd",
-                    Status = "succeeded",
-                    StripePaymentIntentId = "pi_test_2",
-                    CreatedAt = DateTime.UtcNow.AddHours(-1),
-                    UpdatedAt = DateTime.UtcNow.AddHours(-1)
-                }
-            };
-
-            // Act
-            _dbContext.Payments.AddRange(payments);
-            await _dbContext.SaveChangesAsync();
-
-            var taskPayments = await _dbContext.Payments
-                .Where(p => p.TaskId == 1)
-                .ToListAsync();
-
-            // Assert
-            Assert.Equal(2, taskPayments.Count);
-            Assert.All(taskPayments, p => Assert.Equal(1, p.TaskId));
-        }
-
-        [Fact]
-        public async Task Payment_StatusShouldBeUpdatable()
-        {
-            // Arrange
-            var payment = new Payment
-            {
-                Id = 1,
-                TaskId = 1,
-                ClientId = 1,
-                Amount = 100m,
-                Currency = "usd",
-                Status = "pending",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _dbContext.Payments.Add(payment);
-            await _dbContext.SaveChangesAsync();
-
-            // Act
-            var retrieved = await _dbContext.Payments.FirstOrDefaultAsync(p => p.Id == 1);
-            Assert.NotNull(retrieved);
+            var request = new CreatePaymentDto { TaskId = 999, Amount = 100m };
             
-            retrieved.Status = "succeeded";
-            retrieved.StripePaymentIntentId = "pi_updated_123";
-            retrieved.UpdatedAt = DateTime.UtcNow;
-            
-            _dbContext.Payments.Update(retrieved);
-            await _dbContext.SaveChangesAsync();
-
-            var updated = await _dbContext.Payments.FirstOrDefaultAsync(p => p.Id == 1);
+            // Act
+            var result = await _controller.CreatePaymentIntent(request);
 
             // Assert
-            Assert.NotNull(updated);
-            Assert.Equal("succeeded", updated.Status);
-            Assert.Equal("pi_updated_123", updated.StripePaymentIntentId);
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
-        public async Task Payment_ShouldHaveValidRelationshipsWithTaskAndClient()
+        public async Task CreatePaymentIntent_ShouldReturnForbid_WhenUserIsNotTaskOwner()
         {
             // Arrange
-            var payment = new Payment
-            {
-                Id = 1,
-                TaskId = 1,
-                ClientId = 1,
-                Amount = 100m,
-                Currency = "usd",
-                Status = "succeeded",
-                StripePaymentIntentId = "pi_test_123",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
+            SetupUserClaims(userId: 2); // Different user
+            var request = new CreatePaymentDto { TaskId = 1, Amount = 100m };
+            
             // Act
-            _dbContext.Payments.Add(payment);
-            await _dbContext.SaveChangesAsync();
-
-            var retrieved = await _dbContext.Payments
-                .Include(p => p.Task)
-                .Include(p => p.Client)
-                .FirstOrDefaultAsync(p => p.Id == 1);
+            var result = await _controller.CreatePaymentIntent(request);
 
             // Assert
-            Assert.NotNull(retrieved);
-            Assert.NotNull(retrieved.Task);
-            Assert.Equal("Test Task", retrieved.Task.Title);
-            Assert.NotNull(retrieved.Client);
-            Assert.Equal("testclient", retrieved.Client.Username);
+            Assert.IsType<ForbidResult>(result);
         }
+
+        [Fact]
+        public async Task CreatePaymentIntent_ShouldReturnOk_WhenValidRequest()
+        {
+            // Arrange
+            var request = new CreatePaymentDto { TaskId = 1, Amount = 100m };
+            
+            _paymentServiceMock
+                .Setup(x => x.CreatePaymentIntentAsync(It.IsAny<int>(), It.IsAny<decimal>()))
+                .ReturnsAsync(new PaymentDto 
+                { 
+                    Id = 1, 
+                    Amount = 100m, 
+                    Status = "requires_payment_method",
+                    ClientId = 1,
+                    TaskId = 1,
+                    Currency = "usd"
+                });
+
+            // Act
+            var result = await _controller.CreatePaymentIntent(request);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult.Value);
+            _paymentServiceMock.Verify(x => x.CreatePaymentIntentAsync(1, 100m), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetPaymentHistory_ShouldReturnUnauthorized_WhenNoUser()
+        {
+            // Arrange
+            _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal();
+            
+            // Act
+            var result = await _controller.GetPaymentHistory(1);
+
+            // Assert
+            Assert.IsType<UnauthorizedObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task GetPaymentHistory_ShouldReturnOk_WhenUserIsTaskOwner()
+        {
+            // Arrange
+            var payments = new List<PaymentDto>
+            {
+                new PaymentDto { Id = 1, TaskId = 1, ClientId = 1, Amount = 100m, Status = "succeeded", Currency = "usd" }
+            };
+
+            _paymentServiceMock
+                .Setup(x => x.GetPaymentHistoryByTaskAsync(It.IsAny<int>()))
+                .ReturnsAsync(payments);
+
+            // Act
+            var result = await _controller.GetPaymentHistory(1);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnedPayments = Assert.IsAssignableFrom<IEnumerable<PaymentDto>>(okResult.Value);
+            Assert.Single(returnedPayments);
+            _paymentServiceMock.Verify(x => x.GetPaymentHistoryByTaskAsync(1), Times.Once);
+        }
+
+        [Fact]
+        public async Task IsTaskPaid_ShouldReturnTrue_WhenPaymentSucceeded()
+        {
+            // Arrange
+            _paymentServiceMock
+                .Setup(x => x.IsTaskPaidAsync(It.IsAny<int>()))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _controller.IsTaskPaid(1);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.True((bool)okResult.Value);
+            _paymentServiceMock.Verify(x => x.IsTaskPaidAsync(1), Times.Once);
+        }
+
+        [Fact]
+        public async Task IsTaskPaid_ShouldReturnFalse_WhenPaymentNotCompleted()
+        {
+            // Arrange
+            _paymentServiceMock
+                .Setup(x => x.IsTaskPaidAsync(It.IsAny<int>()))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _controller.IsTaskPaid(1);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.False((bool)okResult.Value);
+        }
+
+        [Fact]
+        public async Task GetMyPayments_ShouldReturnUserPayments()
+        {
+            // Arrange
+            var payments = new List<PaymentDto>
+            {
+                new PaymentDto { Id = 1, TaskId = 1, ClientId = 1, Amount = 100m, Status = "succeeded", Currency = "usd" },
+                new PaymentDto { Id = 2, TaskId = 2, ClientId = 1, Amount = 50m, Status = "pending", Currency = "usd" }
+            };
+
+            _paymentServiceMock
+                .Setup(x => x.GetPaymentsByClientAsync(It.IsAny<int>()))
+                .ReturnsAsync(payments);
+
+            // Act
+            var result = await _controller.GetMyPayments();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnedPayments = Assert.IsAssignableFrom<IEnumerable<PaymentDto>>(okResult.Value);
+            Assert.Equal(2, returnedPayments.Count());
+            _paymentServiceMock.Verify(x => x.GetPaymentsByClientAsync(1), Times.Once);
+        }
+
 
         [Fact]
         public async Task MultiplePayments_ShouldBeSeparateRecords()

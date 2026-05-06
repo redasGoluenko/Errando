@@ -12,6 +12,7 @@ export interface Task {
   runnerUsername?: string | null
   location?: string | null
   price?: number | null
+  photoUrl?: string | null
   isRecurring: boolean
   recurringDayOfWeek?: number | null
   recurringRepetitions?: number | null

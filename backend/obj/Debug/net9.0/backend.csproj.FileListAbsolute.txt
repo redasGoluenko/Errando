@@ -208,3 +208,9 @@ C:\Users\redas\Errando\backend\bin\Debug\net9.0\Stripe.net.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
 C:\Users\redas\Errando\backend\bin\Debug\net9.0\backend.staticwebassets.runtime.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\backend.deps.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\backend.runtimeconfig.json
+C:\Users\redas\Errando\backend\bin\Debug\net9.0\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\backend.staticwebassets.endpoints.json
