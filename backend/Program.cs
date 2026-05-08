@@ -128,6 +128,9 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.Migrate();
         Console.WriteLine("✅ Database migrations applied successfully");
+        
+        // Seed default data
+        await SeedDataService.SeedDefaultDataAsync(dbContext);
     }
     catch (Exception ex)
     {
