@@ -56,7 +56,7 @@
           </div>
 
           <!-- My Tasks Grid -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             <div
               v-for="task in myTasks"
               :key="task.id"
@@ -80,9 +80,8 @@
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
 
               <!-- Task Photo -->
-              <div class="mb-4 h-40 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+              <div v-if="task.photoUrl" class="mb-4 h-40 rounded-md border border-gray-200 overflow-hidden">
                 <img
-                  v-if="task.photoUrl"
                   :src="`http://localhost:5064${task.photoUrl}`"
                   :alt="task.title"
                   class="w-full h-full object-cover"
@@ -213,7 +212,7 @@
           </div>
 
           <!-- Available Tasks Grid -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             <div
               v-for="task in availableTasks"
               :key="task.id"
@@ -229,9 +228,8 @@
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
 
               <!-- Task Photo -->
-              <div class="mb-4 h-40 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+              <div v-if="task.photoUrl" class="mb-4 h-40 rounded-md border border-gray-200 overflow-hidden">
                 <img
-                  v-if="task.photoUrl"
                   :src="`http://localhost:5064${task.photoUrl}`"
                   :alt="task.title"
                   class="w-full h-full object-cover"
@@ -290,7 +288,7 @@
           </div>
 
           <!-- Completed Tasks Grid -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             <div
               v-for="task in completedTasks"
               :key="task.id"
@@ -306,9 +304,8 @@
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ task.description }}</p>
 
               <!-- Task Photo -->
-              <div class="mb-4 h-40 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+              <div v-if="task.photoUrl" class="mb-4 h-40 rounded-md border border-gray-200 overflow-hidden">
                 <img
-                  v-if="task.photoUrl"
                   :src="`http://localhost:5064${task.photoUrl}`"
                   :alt="task.title"
                   class="w-full h-full object-cover"

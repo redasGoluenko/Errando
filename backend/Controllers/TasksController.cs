@@ -417,15 +417,19 @@ public class TasksController : ControllerBase
             return Forbid();
         }
 
-        // Clients can only delete tasks they have paid for
+        var isCompleted = task.TaskItems.Count > 0 && task.TaskItems.All(ti => ti.IsCompleted);
+
+        // Clients can only delete completed tasks after payment. Incomplete tasks can be removed without payment.
         if (userRole == "Client")
         {
-            var payment = await _context.Payments.FirstOrDefaultAsync(p => p.TaskId == id && p.Status == "succeeded");
-            if (payment == null)
+            if (isCompleted)
             {
-                return BadRequest(new { message = "You can only delete tasks after payment has been completed." });
+                var payment = await _context.Payments.FirstOrDefaultAsync(p => p.TaskId == id && p.Status == "succeeded");
+                if (payment == null)
+                {
+                    return BadRequest(new { message = "You can only delete completed tasks after payment has been completed." });
+                }
             }
-            // Only proceed with soft delete after payment is verified
             task.IsDeletedByClient = true;
         }
         else if (userRole == "Runner")

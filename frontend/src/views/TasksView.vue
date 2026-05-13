@@ -366,7 +366,7 @@ function isTaskPaid(taskId: number): boolean {
       </div>
 
       <!-- Tasks Grid -->
-      <div v-else-if="filteredTasks.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else-if="filteredTasks.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         <div
           v-for="task in filteredTasks"
           :key="task.id"
@@ -399,9 +399,8 @@ function isTaskPaid(taskId: number): boolean {
             <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ task.description }}</p>
 
             <!-- Task Photo -->
-            <div class="mt-4 h-40 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+            <div v-if="task.photoUrl" class="mt-4 h-40 rounded-md border border-gray-200 overflow-hidden">
               <img
-                v-if="task.photoUrl"
                 :src="`http://localhost:5064${task.photoUrl}`"
                 :alt="task.title"
                 class="w-full h-full object-cover"

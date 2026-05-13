@@ -176,14 +176,14 @@ namespace backend.Tests.Integration.Controllers
         }
 
         [Fact]
-        public async Task DeleteTask_AsClientWithoutPayment_ReturnsBadRequest()
+        public async Task DeleteTask_AsClientWithIncompleteUnpaidTask_ReturnsOk()
         {
             // Arrange
             var client = await _context.Users.FirstAsync(u => u.Role == "Client");
             var task = new TodoTask
             {
                 Title = "Delete Task",
-                Description = "Task pending payment",
+                Description = "Incomplete task pending deletion",
                 ScheduledTime = DateTime.UtcNow.AddDays(1),
                 Status = "Pending",
                 ClientId = client.Id,
@@ -199,8 +199,44 @@ namespace backend.Tests.Integration.Controllers
             var result = await _controller.DeleteTask(task.Id);
 
             // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.Contains("Task deleted", okResult.Value?.ToString() ?? string.Empty);
+            var deletedTask = await _context.Tasks.FindAsync(task.Id);
+            Assert.NotNull(deletedTask);
+            Assert.True(deletedTask!.IsDeletedByClient);
+        }
+
+        [Fact]
+        public async Task DeleteTask_AsClientWithCompletedUnpaidTask_ReturnsBadRequest()
+        {
+            // Arrange
+            var client = await _context.Users.FirstAsync(u => u.Role == "Client");
+            var task = new TodoTask
+            {
+                Title = "Completed Unpaid Task",
+                Description = "Completed task pending payment",
+                ScheduledTime = DateTime.UtcNow.AddDays(1),
+                Status = "Completed",
+                ClientId = client.Id,
+                TaskItems = new List<TaskItem>
+                {
+                    new TaskItem { Description = "Step 1", Status = "Completed", IsCompleted = true },
+                    new TaskItem { Description = "Step 2", Status = "Completed", IsCompleted = true }
+                },
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Tasks.Add(task);
+            await _context.SaveChangesAsync();
+
+            _controller.ControllerContext = new ControllerContext { HttpContext = TestSetup.CreateMockHttpContext(TestSetup.CreateClaimsPrincipal(client.Id, client.Username, "Client")) };
+
+            // Act
+            var result = await _controller.DeleteTask(task.Id);
+
+            // Assert
             var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Contains("payment has been completed", badRequest.Value?.ToString() ?? string.Empty);
+            Assert.Contains("completed tasks after payment", badRequest.Value?.ToString() ?? string.Empty);
         }
 
         [Fact]
