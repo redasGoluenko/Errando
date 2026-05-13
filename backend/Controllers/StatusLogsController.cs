@@ -115,7 +115,6 @@ public class StatusLogsController : ControllerBase
         // Update fields
         statusLog.Status = dto.Status;
         statusLog.Comment = dto.Comment ?? string.Empty;
-        // Note: We keep the original Timestamp, don't update it
 
         await _context.SaveChangesAsync();
 
@@ -147,7 +146,6 @@ public class StatusLogsController : ControllerBase
             return NotFound(new { message = "Status log not found" });
         }
 
-        // Optional: Only allow runner who created it or admin to delete
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
         var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 

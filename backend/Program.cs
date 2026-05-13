@@ -13,11 +13,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
     )
-    // DELETE THIS LINE if it exists:
-    // .UseSnakeCaseNamingConvention()
 );
 
-// CORS: pakeisk origin pagal frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -141,8 +138,7 @@ using (var scope = app.Services.CreateScope())
 // Enable static file serving for uploaded images
 app.UseStaticFiles();
 
-// IMPORTANT: CORS must come BEFORE Authentication and Authorization
-app.UseCors("AllowFrontend");  // ← This line MUST be here
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

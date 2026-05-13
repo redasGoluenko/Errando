@@ -21,7 +21,6 @@ namespace Errando.Data
         [ForeignKey("User2Id")]
         public User? User2 { get; set; }
 
-        // Optional: The task that initiated this chat
         public int? TaskId { get; set; }
 
         [ForeignKey("TaskId")]
