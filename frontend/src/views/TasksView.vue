@@ -290,7 +290,7 @@ function isTaskPaid(taskId: number): boolean {
           </div>
           <div class="flex gap-3">
             <button
-              v-if="userRole === 'Client' || userRole === 'Admin'"
+              v-if="userRole === 'Client'"
               @click="showCreateModal = true"
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
             >
@@ -338,7 +338,7 @@ function isTaskPaid(taskId: number): boolean {
         <h3 class="mt-4 text-lg font-medium text-gray-900">No tasks yet</h3>
         <p class="mt-2 text-gray-500">Get started by creating your first task</p>
         <button
-          v-if="userRole === 'Client' || userRole === 'Admin'"
+          v-if="userRole === 'Client'"
           @click="showCreateModal = true"
           class="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 font-medium"
         >

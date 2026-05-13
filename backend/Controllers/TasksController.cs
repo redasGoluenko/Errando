@@ -157,7 +157,11 @@ public class TasksController : ControllerBase
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
 
-        // Check if user is Client/Admin
+        if (userRole != "Client")
+        {
+            return Forbid();
+        }
+
         if (userRole == "Client")
         {
             createTaskDto.ClientId = userId;

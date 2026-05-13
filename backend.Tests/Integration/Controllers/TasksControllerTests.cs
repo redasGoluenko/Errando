@@ -176,6 +176,31 @@ namespace backend.Tests.Integration.Controllers
         }
 
         [Fact]
+        public async Task CreateTask_AsAdmin_ReturnsForbid()
+        {
+            // Arrange
+            var admin = await _context.Users.FirstAsync(u => u.Role == "Admin");
+            var client = await _context.Users.FirstAsync(u => u.Role == "Client");
+            _controller.ControllerContext = new ControllerContext { HttpContext = TestSetup.CreateMockHttpContext(TestSetup.CreateClaimsPrincipal(admin.Id, admin.Username, "Admin")) };
+
+            var dto = new CreateTaskDto
+            {
+                Title = "Admin Task",
+                Description = "Admins should not create tasks",
+                ScheduledTime = DateTime.UtcNow.AddDays(1),
+                ClientId = client.Id,
+                Location = "Office",
+                Price = 25m
+            };
+
+            // Act
+            var result = await _controller.CreateTask(dto);
+
+            // Assert
+            Assert.IsType<ForbidResult>(result.Result);
+        }
+
+        [Fact]
         public async Task DeleteTask_AsClientWithIncompleteUnpaidTask_ReturnsOk()
         {
             // Arrange
